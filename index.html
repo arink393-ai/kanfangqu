@@ -76,8 +76,25 @@ header.site .inner{max-width:640px;margin:0 auto;}
   box-shadow:var(--shadow);
 }
 h1.brand{
-  font-family:'Noto Sans TC',sans-serif;font-weight:900;font-size:clamp(26px,7vw,32px);
+  font-family:'Noto Sans TC',sans-serif;font-weight:900;font-size:clamp(22px,6vw,32px);
   margin:0;letter-spacing:-.01em;
+}
+.header-auth{margin-left:auto;flex-shrink:0;display:flex;align-items:center;}
+.header-login-btn{
+  background:var(--accent);color:var(--accent-ink);border:none;border-radius:99px;
+  padding:8px 15px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;
+  font-family:'Noto Sans TC',sans-serif;
+}
+.header-auth-logged{display:flex;align-items:center;gap:6px;}
+.header-unlock{font-size:14px;line-height:1;flex-shrink:0;}
+.header-avatar{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  border:2px solid var(--accent-soft);object-fit:cover;background:var(--surface-2);
+}
+.header-logout{
+  background:none;border:1px solid var(--line);color:var(--muted);
+  border-radius:99px;padding:5px 11px;font-size:11.5px;cursor:pointer;white-space:nowrap;
+  font-family:'Noto Sans TC',sans-serif;
 }
 .eyebrow{
   font-family:'Manrope',sans-serif;font-size:11px;font-weight:800;letter-spacing:.1em;
@@ -101,29 +118,6 @@ h1.brand{
   color:var(--warn);flex-shrink:0;margin-top:2px;
 }
 .notice-tag p{margin:0;color:var(--muted);}
-
-.auth-bar{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  border:1px solid var(--line);border-radius:var(--radius-md);
-  background:var(--surface);padding:11px 14px;margin:14px 0 0;font-size:13px;box-shadow:var(--shadow);
-}
-.auth-left{display:flex;align-items:center;gap:9px;min-width:0;}
-.auth-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;border:2px solid var(--accent-soft);object-fit:cover;background:var(--surface-2);}
-.auth-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:700;}
-.auth-sub{color:var(--muted);font-size:12.5px;}
-.btn-login{
-  background:var(--accent);color:var(--accent-ink);border:none;border-radius:99px;
-  padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;
-}
-.btn-logout{
-  background:none;border:1px solid var(--line);color:var(--muted);
-  border-radius:99px;padding:7px 13px;font-size:12.5px;cursor:pointer;white-space:nowrap;
-}
-.unlock-pill{
-  font-family:'Manrope',sans-serif;font-size:10.5px;font-weight:700;
-  padding:2px 9px;border-radius:99px;background:var(--surface-2);color:var(--muted);
-}
-.unlock-pill.unlocked{background:var(--good-soft);color:var(--good);}
 
 .stats-strip{display:flex;gap:10px;margin:14px 0 4px;}
 .stat-tile{
@@ -278,6 +272,7 @@ footer.site{max-width:640px;margin:40px auto 0;padding:20px 16px 40px;border-top
     <div class="brand-row">
       <span class="brand-icon">🏠</span>
       <h1 class="brand">看房趣</h1>
+      <div class="header-auth" id="authBar"></div>
     </div>
     <div class="eyebrow">社群評論 · 匿名分享</div>
     <p class="tagline">把每一次看房的真相說出來</p>
@@ -290,13 +285,6 @@ footer.site{max-width:640px;margin:40px auto 0;padding:20px 16px 40px;border-top
     <div class="notice-tag">
       <span class="stamp-label">使用須知</span>
       <p>內容均為使用者個人陳述，未經第三方查證，請理性判斷、勿人身攻擊。發文請勿提供足以直接指認特定自然人的資訊（全名、身分證字號、清晰照片等）。物件地址一律只顯示到路段等級；房東／房仲在591上的公開聯絡方式，需登入並分享過故事後才能查看。</p>
-    </div>
-
-    <div class="auth-bar" id="authBar">
-      <div class="auth-left">
-        <span class="auth-sub">登入後即可分享故事、按讚、解鎖591資訊</span>
-      </div>
-      <button class="btn-login" id="btnLogin">使用 Google 登入</button>
     </div>
 
     <div class="stats-strip">
@@ -407,19 +395,14 @@ const authBar = document.getElementById('authBar');
 function renderAuthBar(){
   if(currentUser){
     authBar.innerHTML = `
-      <div class="auth-left">
-        <img class="auth-avatar" src="${escapeHtml(currentUser.photoURL||'')}" onerror="this.style.visibility='hidden'">
-        <div>
-          <div class="auth-name">${escapeHtml(currentUser.displayName||currentUser.email||'已登入')}</div>
-          <span class="unlock-pill ${hasShared?'unlocked':''}">${hasShared?'🔓 已解鎖591資訊':'🔒 分享故事解鎖591資訊'}</span>
-        </div>
-      </div>
-      <button class="btn-logout" id="btnLogout">登出</button>`;
+      <div class="header-auth-logged">
+        <span class="header-unlock" title="${hasShared?'已解鎖591資訊':'分享故事解鎖591資訊'}">${hasShared?'🔓':'🔒'}</span>
+        <img class="header-avatar" src="${escapeHtml(currentUser.photoURL||'')}" title="${escapeHtml(currentUser.displayName||currentUser.email||'已登入')}" onerror="this.style.visibility='hidden'">
+        <button class="header-logout" id="btnLogout">登出</button>
+      </div>`;
     document.getElementById('btnLogout').addEventListener('click', () => signOut(auth));
   } else {
-    authBar.innerHTML = `
-      <div class="auth-left"><span class="auth-sub">登入後即可分享故事、按讚、解鎖591資訊</span></div>
-      <button class="btn-login" id="btnLogin">使用 Google 登入</button>`;
+    authBar.innerHTML = `<button class="header-login-btn" id="btnLogin">登入</button>`;
     document.getElementById('btnLogin').addEventListener('click', handleLogin);
   }
 }
