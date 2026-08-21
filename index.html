@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>看房趣</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="匿名公開的看房與議價經驗分享公佈欄，記錄房東房仲的失信行為，讓租屋族互相提醒。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%AD%90%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --ink:#14161B;
+  --bg:#F5F6F9;
+  --surface:#FFFFFF;
+  --surface-2:#EFF1F6;
+  --line:#E5E7EF;
+  --accent:#3654D6;
+  --accent-ink:#FFFFFF;
+  --accent-soft:#EAEDFC;
+  --danger:#E1483D;
+  --danger-soft:#FCEBEA;
+  --warn:#C7860A;
+  --warn-soft:#FBF1DC;
+  --good:#1C9463;
+  --good-soft:#E6F5EE;
+  --muted:#666E7D;
+  --muted-2:#98A0AC;
+  --shadow: 0 1px 2px rgba(20,22,27,.05), 0 10px 28px -14px rgba(20,22,27,.22);
+  --radius-lg:20px;
+  --radius-md:12px;
+  --radius-sm:9px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#EEF0F5; --bg:#0F1116; --surface:#181B22; --surface-2:#20242D; --line:#2B2F3A;
+    --accent:#8194FF; --accent-ink:#12142B; --accent-soft:#232A4C;
+    --danger:#FF7A6E; --danger-soft:#3A2321;
+    --warn:#F0B457; --warn-soft:#3A2E17;
+    --good:#4FD79B; --good-soft:#153328;
+    --muted:#9AA1AE; --muted-2:#6B7280;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 14px 34px -16px rgba(0,0,0,.65);
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#EEF0F5; --bg:#0F1116; --surface:#181B22; --surface-2:#20242D; --line:#2B2F3A;
+  --accent:#8194FF; --accent-ink:#12142B; --accent-soft:#232A4C;
+  --danger:#FF7A6E; --danger-soft:#3A2321;
+  --warn:#F0B457; --warn-soft:#3A2E17;
+  --good:#4FD79B; --good-soft:#153328;
+  --muted:#9AA1AE; --muted-2:#6B7280;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 14px 34px -16px rgba(0,0,0,.65);
+}
+*{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;color-scheme:light dark;}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;
+  line-height:1.65;
+}
+::selection{background:var(--accent);color:#fff;}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 128px;}
+a{color:var(--accent);}
+button{font:inherit;}
+
+header.site{
+  padding:28px 16px 20px;background:var(--surface);border-bottom:1px solid var(--line);
+}
+header.site .inner{max-width:640px;margin:0 auto;}
+.brand-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.brand-icon{
+  width:38px;height:38px;border-radius:11px;background:var(--accent);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;
+  box-shadow:var(--shadow);
+}
+h1.brand{
+  font-family:'Noto Sans TC',sans-serif;font-weight:900;font-size:clamp(26px,7vw,32px);
+  margin:0;letter-spacing:-.01em;
+}
+.eyebrow{
+  font-family:'Manrope',sans-serif;font-size:11px;font-weight:800;letter-spacing:.1em;
+  color:var(--accent);text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;
+  background:var(--accent-soft);padding:4px 10px 4px 8px;border-radius:99px;margin-bottom:12px;
+}
+.eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;}
+.tagline{font-size:15px;font-weight:700;color:var(--ink);margin:2px 0 8px;}
+.mission{font-size:14px;color:var(--muted);max-width:56ch;margin:0;}
+
+.local-panel{padding:14px 16px 0;}
+.local-panel .wrap{padding:0 0 4px;}
+
+.notice-tag{
+  display:flex;gap:10px;align-items:flex-start;background:var(--warn-soft);
+  border:1px solid transparent;border-radius:var(--radius-md);padding:12px 14px;
+  margin:14px 0;font-size:13px;color:var(--ink);
+}
+.notice-tag .stamp-label{
+  font-family:'Manrope',sans-serif;font-weight:800;font-size:10.5px;letter-spacing:.06em;
+  color:var(--warn);flex-shrink:0;margin-top:2px;
+}
+.notice-tag p{margin:0;color:var(--muted);}
+
+.auth-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  border:1px solid var(--line);border-radius:var(--radius-md);
+  background:var(--surface);padding:11px 14px;margin:14px 0 0;font-size:13px;box-shadow:var(--shadow);
+}
+.auth-left{display:flex;align-items:center;gap:9px;min-width:0;}
+.auth-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;border:2px solid var(--accent-soft);object-fit:cover;background:var(--surface-2);}
+.auth-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:700;}
+.auth-sub{color:var(--muted);font-size:12.5px;}
+.btn-login{
+  background:var(--accent);color:var(--accent-ink);border:none;border-radius:99px;
+  padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;
+}
+.btn-logout{
+  background:none;border:1px solid var(--line);color:var(--muted);
+  border-radius:99px;padding:7px 13px;font-size:12.5px;cursor:pointer;white-space:nowrap;
+}
+.unlock-pill{
+  font-family:'Manrope',sans-serif;font-size:10.5px;font-weight:700;
+  padding:2px 9px;border-radius:99px;background:var(--surface-2);color:var(--muted);
+}
+.unlock-pill.unlocked{background:var(--good-soft);color:var(--good);}
+
+.stats-strip{display:flex;gap:10px;margin:14px 0 4px;}
+.stat-tile{
+  flex:1;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-md);
+  padding:12px 14px;box-shadow:var(--shadow);
+}
+.stat-tile .num{font-family:'Manrope',sans-serif;font-weight:800;font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums;}
+.stat-tile .num.warn-num{color:var(--danger);}
+.stat-tile .lbl{font-size:11.5px;color:var(--muted);margin-top:2px;}
+
+.filter-bar{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 6px;}
+.filter-bar select{
+  font-family:'Noto Sans TC',sans-serif;font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:99px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);
+}
+.chip{
+  font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:99px;border:1px solid var(--line);
+  background:var(--surface);color:var(--muted);cursor:pointer;user-select:none;
+  transition:background .12s, color .12s, border-color .12s;
+}
+.chip.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.chip-reset{font-size:12px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;padding:6px 4px;}
+
+main{padding-top:10px;}
+.section-label{
+  font-family:'Manrope',sans-serif;font-size:12px;font-weight:800;letter-spacing:.04em;
+  color:var(--ink);margin:28px 0 4px;display:flex;align-items:center;gap:8px;
+}
+.example-note{font-size:12.5px;color:var(--muted);margin:0 0 14px;}
+.empty-state{
+  border:1.5px dashed var(--line);border-radius:var(--radius-md);padding:26px 16px;
+  text-align:center;color:var(--muted);font-size:13.5px;margin-top:10px;background:var(--surface);
+}
+
+#postsList,#exampleList{display:flex;flex-direction:column;gap:14px;}
+
+.case-card{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:18px;
+}
+.case-card.is-example{opacity:.9;}
+.card-top-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.rating-badge{
+  display:flex;align-items:center;gap:5px;flex-shrink:0;
+  background:var(--danger-soft);color:var(--danger);border-radius:99px;
+  padding:5px 11px 5px 9px;font-family:'Manrope',sans-serif;font-weight:800;font-size:13px;
+}
+.rating-badge.r-mid{background:var(--warn-soft);color:var(--warn);}
+.rating-badge.r-good{background:var(--good-soft);color:var(--good);}
+.rating-badge .star{font-size:12px;}
+.case-tab{
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted-2);flex-shrink:0;
+}
+.case-date{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted-2);margin-left:auto;flex-shrink:0;}
+
+.case-title{font-family:'Noto Sans TC',sans-serif;font-weight:700;font-size:17.5px;margin:0 0 6px;line-height:1.4;text-wrap:balance;}
+.case-meta{font-size:12.5px;color:var(--muted);margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.tags-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.tag-pill{font-size:11.5px;font-weight:600;padding:4px 10px;background:var(--accent-soft);color:var(--accent);border-radius:99px;}
+
+.field-label{font-family:'Manrope',sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted-2);margin:14px 0 6px;}
+.summary-box{
+  font-size:13.5px;color:var(--ink);background:var(--danger-soft);border-radius:var(--radius-sm);
+  border-left:3px solid var(--danger);padding:10px 12px;white-space:pre-wrap;line-height:1.6;
+}
+.narrative-box{font-size:14px;color:var(--ink);white-space:pre-wrap;line-height:1.75;}
+.rough-loc{font-size:13px;color:var(--ink);}
+
+.landlord591-value{
+  font-size:12.5px;color:var(--ink);font-family:'JetBrains Mono',monospace;
+  background:var(--accent-soft);border-radius:var(--radius-sm);
+  padding:10px 12px;white-space:pre-wrap;word-break:break-word;display:none;line-height:1.6;
+}
+.landlord591-value.show{display:block;}
+.landlord591-locked{
+  display:flex;align-items:center;gap:8px;border:1.5px dashed var(--line);border-radius:var(--radius-sm);
+  padding:10px 12px;background:none;color:var(--muted);font-size:12.5px;width:100%;text-align:left;
+  cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-weight:500;
+}
+.landlord591-locked:hover{border-color:var(--accent);color:var(--accent);}
+.landlord591-locked.hide{display:none;}
+
+.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);}
+.btn-helpful{
+  display:flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid transparent;
+  border-radius:99px;padding:7px 13px;font-size:12.5px;font-weight:600;color:var(--muted);
+  font-family:'Noto Sans TC',sans-serif;cursor:pointer;
+}
+.btn-helpful:active{transform:scale(.96);}
+.btn-helpful.liked{background:var(--good-soft);color:var(--good);}
+.help-count{font-family:'Manrope',sans-serif;font-weight:800;}
+.card-footer .case-date{margin-left:0;}
+
+.fab{
+  position:fixed;right:18px;bottom:22px;background:var(--accent);color:var(--accent-ink);
+  border:none;border-radius:99px;height:56px;padding:0 22px 0 20px;font-size:14.5px;font-weight:700;
+  font-family:'Noto Sans TC',sans-serif;box-shadow:0 12px 28px -8px rgba(54,84,214,.5);
+  cursor:pointer;z-index:40;display:flex;align-items:center;gap:8px;
+}
+.fab:disabled{background:var(--muted-2);box-shadow:none;cursor:not-allowed;}
+.fab .pin{font-size:18px;}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(15,17,22,.55);display:flex;align-items:flex-end;justify-content:center;z-index:100;backdrop-filter:blur(2px);}
+.modal-sheet{width:100%;max-width:640px;max-height:92vh;overflow-y:auto;background:var(--bg);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -16px 48px rgba(0,0,0,.28);}
+.modal-sheet h2{font-family:'Noto Sans TC',sans-serif;font-weight:900;font-size:21px;margin:2px 0 4px;}
+.modal-sub{font-size:12.5px;color:var(--muted);margin:0 0 18px;}
+.f-group{margin-bottom:16px;}
+.f-row{display:flex;gap:10px;}
+.f-row .f-group{flex:1;min-width:0;}
+.f-label{font-family:'Manrope',sans-serif;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;display:block;}
+.f-hint{font-size:11.5px;color:var(--muted);margin-top:5px;}
+.f-group input[type=text],.f-group textarea,.f-group select{
+  width:100%;font-family:'Noto Sans TC',sans-serif;font-size:14.5px;padding:11px 13px;
+  border:1.5px solid var(--line);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);resize:vertical;
+}
+.f-group input[type=text]:focus,.f-group textarea:focus,.f-group select:focus{outline:2px solid var(--accent);outline-offset:1px;}
+.f-group textarea{min-height:88px;line-height:1.6;}
+.chip-choice{display:flex;flex-wrap:wrap;gap:7px;}
+.chip-choice .chip{background:var(--surface);}
+.star-row{display:flex;gap:6px;}
+.star-btn{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);font-family:'Manrope',sans-serif;font-weight:700;font-size:15px;cursor:pointer;}
+.star-btn.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.modal-actions{display:flex;gap:10px;margin-top:6px;position:sticky;bottom:0;background:var(--bg);padding-top:10px;}
+.btn-primary{flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:var(--radius-md);padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
+.btn-primary:disabled{background:var(--muted-2);cursor:not-allowed;}
+.btn-secondary{background:none;border:1.5px solid var(--line);color:var(--muted);border-radius:var(--radius-md);padding:14px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
+.f-error{color:var(--danger);font-size:12.5px;margin-top:8px;display:none;font-weight:600;}
+.f-error.show{display:block;}
+.login-inline{
+  border:1.5px dashed var(--line);border-radius:var(--radius-md);padding:14px;text-align:center;
+  color:var(--muted);font-size:13px;margin-bottom:16px;
+}
+.login-inline button{margin-top:10px;}
+
+.toast{
+  position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
+  background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:99px;font-size:13px;font-weight:600;
+  opacity:0;transition:opacity .25s,transform .25s;z-index:200;pointer-events:none;
+  font-family:'Noto Sans TC',sans-serif;max-width:86vw;text-align:center;box-shadow:var(--shadow);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+footer.site{max-width:640px;margin:40px auto 0;padding:20px 16px 40px;border-top:1px solid var(--line);font-size:12px;color:var(--muted-2);text-align:center;}
+
+@media (prefers-reduced-motion:reduce){*{transition:none !important;}}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="inner">
+    <div class="brand-row">
+      <span class="brand-icon">🏠</span>
+      <h1 class="brand">看房趣</h1>
+    </div>
+    <div class="eyebrow">社群評論 · 匿名分享</div>
+    <p class="tagline">把每一次看房的真相說出來</p>
+    <p class="mission">看房是一場資訊不對等的談判。這裡讓租屋族記錄看房與議價過程、給房東房仲打分數，用真實案例互相提醒——說話不算話的房東，不該只有你一個人知道。</p>
+  </div>
+</header>
+
+<div class="local-panel">
+  <div class="wrap">
+    <div class="notice-tag">
+      <span class="stamp-label">使用須知</span>
+      <p>內容均為使用者個人陳述，未經第三方查證，請理性判斷、勿人身攻擊。發文請勿提供足以直接指認特定自然人的資訊（全名、身分證字號、清晰照片等）。物件地址一律只顯示到路段等級；房東／房仲在591上的公開聯絡方式，需登入並分享過故事後才能查看。</p>
+    </div>
+
+    <div class="auth-bar" id="authBar">
+      <div class="auth-left">
+        <span class="auth-sub">登入後即可分享故事、按讚、解鎖591資訊</span>
+      </div>
+      <button class="btn-login" id="btnLogin">使用 Google 登入</button>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-tile"><div class="num" id="statCount">–</div><div class="lbl">則分享案例</div></div>
+      <div class="stat-tile"><div class="num warn-num" id="statAvg">–</div><div class="lbl">平均誠信分數／5</div></div>
+    </div>
+
+    <div class="filter-bar" id="filterBar">
+      <select id="filterCity">
+        <option value="">全部地區</option>
+        <option value="台北市">台北市</option>
+        <option value="新北市">新北市</option>
+        <option value="桃園市">桃園市</option>
+        <option value="台中市">台中市</option>
+        <option value="台南市">台南市</option>
+        <option value="高雄市">高雄市</option>
+        <option value="其他縣市">其他縣市</option>
+      </select>
+      <button class="chip" data-tag-filter="口頭承諾但反悔">口頭承諾反悔</button>
+      <button class="chip" data-tag-filter="房子已出租卻仍刊登">早已出租仍刊登</button>
+      <button class="chip" data-tag-filter="收了斡旋/訂金卻不算數">訂金糾紛</button>
+      <button class="chip" data-tag-filter="隱瞞房屋瑕疵">隱瞞瑕疵</button>
+      <button class="chip" data-tag-filter="不退還訂金或押金">不退款</button>
+      <button class="chip-reset" id="btnResetFilter">清除篩選</button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="section-label">精選範例</div>
+  <p class="example-note">以下兩則是真實案例整理而成的示範，說明每則故事會記錄哪些內容（非即時互動）。</p>
+  <div id="exampleList"></div>
+
+  <div class="section-label">全部分享</div>
+  <div id="postsList"></div>
+  <div id="emptyState" class="empty-state" style="display:none;">目前還沒有真實案例，成為第一個分享故事的人吧！</div>
+</main>
+
+<button class="fab" id="fabCompose"><span class="pin">＋</span> 分享故事</button>
+
+<footer class="site">
+  看房趣・一個記錄看房與議價心得的匿名社群。內容由使用者自行提供，不代表平台立場或事實查證。
+</footer>
+
+<script type="module">
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, doc, addDoc, setDoc, getDoc,
+  onSnapshot, query, orderBy, limit, serverTimestamp, runTransaction
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* =========================================================================
+   ⚠️ 設定區：請把下面換成你自己 Firebase 專案的設定值
+   （Firebase Console → 專案設定 → 一般 → 你的應用程式 → SDK 設定）
+   詳細步驟請見一起收到的 README.md
+========================================================================= */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+/* ========================================================================= */
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+const TAG_OPTIONS = ["口頭承諾但反悔","收了斡旋/訂金卻不算數","房子已出租卻仍刊登","隱瞞房屋瑕疵","拖延/不處理修繕","不退還訂金或押金","臨時調漲租金或條件","用話術施壓成交","其他"];
+const CITY_OPTIONS = ["台北市","新北市","桃園市","台中市","台南市","高雄市","其他縣市"];
+
+const postsListEl = document.getElementById('postsList');
+const emptyStateEl = document.getElementById('emptyState');
+const statCountEl = document.getElementById('statCount');
+const statAvgEl = document.getElementById('statAvg');
+
+let currentUser = null;
+let hasShared = false;
+let allDocs = [];         // [{id, data}]
+let pendingDraftAfterLogin = null;
+
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showToast(msg){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2600);
+}
+function roughLocationText(d){
+  const parts = [d.city, d.district, d.road].filter(Boolean);
+  return parts.length ? parts.join(' ') : '地區未提供';
+}
+
+/* ---------------- auth ---------------- */
+const authBar = document.getElementById('authBar');
+function renderAuthBar(){
+  if(currentUser){
+    authBar.innerHTML = `
+      <div class="auth-left">
+        <img class="auth-avatar" src="${escapeHtml(currentUser.photoURL||'')}" onerror="this.style.visibility='hidden'">
+        <div>
+          <div class="auth-name">${escapeHtml(currentUser.displayName||currentUser.email||'已登入')}</div>
+          <span class="unlock-pill ${hasShared?'unlocked':''}">${hasShared?'🔓 已解鎖591資訊':'🔒 分享故事解鎖591資訊'}</span>
+        </div>
+      </div>
+      <button class="btn-logout" id="btnLogout">登出</button>`;
+    document.getElementById('btnLogout').addEventListener('click', () => signOut(auth));
+  } else {
+    authBar.innerHTML = `
+      <div class="auth-left"><span class="auth-sub">登入後即可分享故事、按讚、解鎖591資訊</span></div>
+      <button class="btn-login" id="btnLogin">使用 Google 登入</button>`;
+    document.getElementById('btnLogin').addEventListener('click', handleLogin);
+  }
+}
+async function handleLogin(){
+  try{
+    await signInWithPopup(auth, provider);
+  }catch(e){
+    showToast('登入失敗，請再試一次');
+    console.error(e);
+  }
+}
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  hasShared = false;
+  if(user){
+    try{
+      const snap = await getDoc(doc(db,'users',user.uid));
+      hasShared = snap.exists() && snap.data().hasShared === true;
+    }catch(e){ hasShared = false; }
+  }
+  renderAuthBar();
+  renderList();
+  if(pendingDraftAfterLogin && user){
+    const d = pendingDraftAfterLogin;
+    pendingDraftAfterLogin = null;
+    openComposeModal(d);
+  }
+});
+
+/* ---------------- live posts feed ---------------- */
+function subscribe(){
+  const q = query(collection(db,'posts'), orderBy('createdAt','desc'), limit(200));
+  onSnapshot(q, snap => {
+    allDocs = snap.docs.map(docSnap => ({ id: docSnap.id, data: docSnap.data() }));
+    statCountEl.textContent = allDocs.length;
+    if(allDocs.length){
+      const sum = allDocs.reduce((acc,p) => acc + (Number(p.data.rating)||0), 0);
+      statAvgEl.textContent = (sum / allDocs.length).toFixed(1);
+    } else {
+      statAvgEl.textContent = '–';
+    }
+    renderList();
+  }, err => {
+    console.error(err);
+    showToast('讀取案例時發生問題，請確認 Firebase 設定是否正確');
+  });
+}
+
+let activeTagFilter = null;
+let activeCity = '';
+function passesFilter(d){
+  const tagOk = !activeTagFilter || (Array.isArray(d.tags) && d.tags.indexOf(activeTagFilter) !== -1);
+  const cityOk = !activeCity || d.city === activeCity;
+  return tagOk && cityOk;
+}
+
+function renderList(){
+  const visible = allDocs.filter(p => passesFilter(p.data));
+  postsListEl.innerHTML = '';
+  visible.forEach(p => postsListEl.appendChild(buildCaseCard(p.id, p.data, false)));
+  emptyStateEl.style.display = allDocs.length === 0 ? 'block' : 'none';
+}
+
+/* ---------------- render one case card ---------------- */
+function buildCaseCard(id, d, isExample){
+  const art = document.createElement('article');
+  art.className = 'case-card' + (isExample ? ' is-example' : '');
+  const caseTag = isExample ? '' : ('#' + id.slice(0,6).toUpperCase());
+
+  const ratingNum = Number(d.rating) || 0;
+  const badgeClass = ratingNum ? (ratingNum <= 2 ? '' : (ratingNum === 3 ? ' r-mid' : ' r-good')) : '';
+  const tags = Array.isArray(d.tags) ? d.tags : [];
+
+  art.innerHTML = `
+    <div class="card-top-row">
+      <span class="rating-badge${badgeClass}"><span class="star">★</span>${ratingNum || '–'}/5</span>
+      ${caseTag ? `<span class="case-tab">${escapeHtml(caseTag)}</span>` : ''}
+      <span class="case-date">${escapeHtml(d.dateLabel || '')}</span>
+    </div>
+    <h3 class="case-title">${escapeHtml(d.title||'（未命名故事）')}</h3>
+    <div class="case-meta">
+      <span>📍 ${escapeHtml(roughLocationText(d))}</span>
+    </div>
+    <div class="tags-row">${tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div>
+    <div class="field-label">失信行為記錄</div>
+    <p class="summary-box">${escapeHtml(d.summary||'（未填寫）')}</p>
+    <div class="field-label">完整看房與談判過程</div>
+    <p class="narrative-box">${escapeHtml(d.narrative||'')}</p>
+    <div class="field-label">房東／房仲591聯絡資訊</div>
+    <div class="landlord591-value" id="v591-${id}"></div>
+    <button class="landlord591-locked" id="l591-${id}" type="button">🔒 <span>分享你的看房故事以解鎖591聯絡資訊</span></button>
+    <div class="card-footer">
+      <button class="btn-helpful" data-action="helpful" data-id="${id}"${isExample?' disabled':''}>🙋 我也遇到類似狀況 <span class="help-count">${Number(d.helpfulCount)||0}</span></button>
+      <span class="case-date">${escapeHtml(d.dateLabel||'')}</span>
+    </div>`;
+
+  if(isExample){
+    const lockedBtn = art.querySelector('.landlord591-locked');
+    lockedBtn.classList.add('hide');
+    const valueBox = art.querySelector('.landlord591-value');
+    valueBox.textContent = d.landlord591 || '作者未提供591資訊。';
+    valueBox.classList.add('show');
+  } else {
+    setup591Box(id, art);
+    const helpBtn = art.querySelector('.btn-helpful');
+    if(hasLikedLocally(id)) helpBtn.classList.add('liked');
+    helpBtn.addEventListener('click', () => handleHelpful(id, helpBtn));
+    art.querySelector('.landlord591-locked').addEventListener('click', () => {
+      if(!currentUser){ handleLogin(); return; }
+      if(!hasShared){ showToast('分享一則你自己的看房故事後即可解鎖591資訊'); openComposeModal(null); }
+    });
+  }
+  return art;
+}
+
+async function setup591Box(id, art){
+  const valueBox = art.querySelector('#v591-' + CSS.escape(id));
+  const lockedBtn = art.querySelector('#l591-' + CSS.escape(id));
+  if(currentUser && hasShared){
+    try{
+      const snap = await getDoc(doc(db,'posts',id,'private','contact'));
+      valueBox.textContent = (snap.exists() && snap.data().landlord591) ? snap.data().landlord591 : '作者未提供591資訊。';
+      valueBox.classList.add('show');
+      lockedBtn.classList.add('hide');
+    }catch(e){
+      // permission-denied or not found -> stay locked
+    }
+  }
+}
+
+/* ---------------- helpful / like ---------------- */
+function likedKey(id){ return 'kanfang_liked_' + id; }
+function hasLikedLocally(id){
+  try{ return localStorage.getItem(likedKey(id)) === '1'; }catch(e){ return false; }
+}
+function markLikedLocally(id){
+  try{ localStorage.setItem(likedKey(id), '1'); }catch(e){}
+}
+async function handleHelpful(id, btn){
+  if(!currentUser){ handleLogin(); return; }
+  if(hasLikedLocally(id) || btn.classList.contains('liked')) return;
+  /* Mark liked BEFORE the write: Firestore's realtime listener can
+     re-render the whole list while this transaction is in flight, and
+     that re-render reads localStorage to decide the button's liked
+     state. Setting it first avoids a race where a mid-flight re-render
+     redraws the button as not-yet-liked. */
+  markLikedLocally(id);
+  btn.disabled = true;
+  try{
+    await runTransaction(db, async (tx) => {
+      const likeRef = doc(db,'posts',id,'likes',currentUser.uid);
+      const likeSnap = await tx.get(likeRef);
+      if(likeSnap.exists()) return;
+      const postRef = doc(db,'posts',id);
+      const postSnap = await tx.get(postRef);
+      const cur = Number(postSnap.data().helpfulCount) || 0;
+      tx.set(likeRef, { likedAt: serverTimestamp() });
+      tx.update(postRef, { helpfulCount: cur + 1 });
+    });
+  }catch(e){
+    // already liked from another session, or a transient error — the
+    // local mark above already prevents further attempts either way.
+  }
+  renderList();
+}
+
+/* ---------------- filters ---------------- */
+document.getElementById('filterCity').addEventListener('change', e => {
+  activeCity = e.target.value; renderList();
+});
+document.querySelectorAll('[data-tag-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const val = btn.getAttribute('data-tag-filter');
+    if(activeTagFilter === val){
+      activeTagFilter = null; btn.classList.remove('active');
+    } else {
+      activeTagFilter = val;
+      document.querySelectorAll('[data-tag-filter]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    renderList();
+  });
+});
+document.getElementById('btnResetFilter').addEventListener('click', () => {
+  activeTagFilter = null; activeCity = '';
+  document.getElementById('filterCity').value = '';
+  document.querySelectorAll('[data-tag-filter]').forEach(b => b.classList.remove('active'));
+  renderList();
+});
+
+/* ---------------- compose modal ---------------- */
+function openComposeModal(prefill){
+  closeComposeModal();
+  if(!currentUser){
+    pendingDraftAfterLogin = prefill || {};
+    handleLogin();
+    return;
+  }
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.id = 'composeBackdrop';
+  const sheet = document.createElement('div');
+  sheet.className = 'modal-sheet';
+
+  sheet.innerHTML = `
+    <h2>分享看房故事</h2>
+    <p class="modal-sub">以「${escapeHtml(currentUser.displayName||currentUser.email||'你的帳號')}」匿名發佈・頁面上不會顯示你的帳號資訊</p>
+    <div class="f-group"><label class="f-label">故事標題</label>
+      <input type="text" id="fTitle" maxlength="40" placeholder="例：說好的租金隔天就反悔">
+    </div>
+    <div class="f-row">
+      <div class="f-group"><label class="f-label">縣市</label>
+        <select id="fCity"><option value="">不提供</option>${CITY_OPTIONS.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
+      </div>
+      <div class="f-group"><label class="f-label">地區（選填）</label>
+        <input type="text" id="fDistrict" maxlength="20" placeholder="例：大安區">
+      </div>
+    </div>
+    <div class="f-group"><label class="f-label">路段／街名（選填）</label>
+      <input type="text" id="fRoad" maxlength="30" placeholder="例：忠孝東路一帶（請勿填完整門牌）">
+    </div>
+    <div class="f-group"><label class="f-label">事件類型（可複選）</label>
+      <div class="chip-choice" id="fTags">${TAG_OPTIONS.map(t=>`<button type="button" class="chip" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('')}</div>
+    </div>
+    <div class="f-group"><label class="f-label">誠信評分（1=非常不可信・5=值得信賴）</label>
+      <div class="star-row" id="fRating">${[1,2,3,4,5].map(n=>`<button type="button" class="star-btn" data-star="${n}">${n}</button>`).join('')}</div>
+    </div>
+    <div class="f-group"><label class="f-label">失信行為記錄（1-2句話簡述）</label>
+      <textarea id="fSummary" maxlength="150" placeholder="例：口頭答應28,000元承租，隔天卻反悔說已租出"></textarea>
+    </div>
+    <div class="f-group"><label class="f-label">完整看房與談判過程</label>
+      <textarea id="fNarrative" maxlength="1500" style="min-height:140px" placeholder="說說事情的來龍去脈..."></textarea>
+    </div>
+    <div class="f-group"><label class="f-label">房東／房仲在591上的聯絡方式或連結（選填）</label>
+      <textarea id="fContact" maxlength="300" placeholder="例：591刊登連結、房仲公司名稱與業務電話"></textarea>
+      <p class="f-hint">這是房東／房仲自己在591上公開刊登的資訊。此欄位只有「登入且已分享過故事」的使用者才看得到；仍建議避免貼上完整門牌或個人手機以外的私人資訊。</p>
+    </div>
+    <p class="f-error" id="fError">請填寫標題、至少一個事件類型、誠信評分與完整過程後再發佈。</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btnCancel">取消</button>
+      <button type="button" class="btn-primary" id="btnSubmit">發佈故事</button>
+    </div>`;
+
+  backdrop.appendChild(sheet);
+  document.body.appendChild(backdrop);
+
+  let selectedTags = [];
+  let selectedRating = 0;
+
+  sheet.querySelectorAll('#fTags .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const t = chip.getAttribute('data-tag');
+      const idx = selectedTags.indexOf(t);
+      if(idx === -1){ selectedTags.push(t); chip.classList.add('active'); }
+      else { selectedTags.splice(idx,1); chip.classList.remove('active'); }
+    });
+  });
+  sheet.querySelectorAll('#fRating .star-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedRating = parseInt(btn.getAttribute('data-star'),10);
+      sheet.querySelectorAll('#fRating .star-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.getAttribute('data-star'),10) <= selectedRating);
+      });
+    });
+  });
+
+  if(prefill){
+    if(prefill.title) sheet.querySelector('#fTitle').value = prefill.title;
+    if(prefill.city) sheet.querySelector('#fCity').value = prefill.city;
+    if(prefill.district) sheet.querySelector('#fDistrict').value = prefill.district;
+    if(prefill.road) sheet.querySelector('#fRoad').value = prefill.road;
+    if(prefill.summary) sheet.querySelector('#fSummary').value = prefill.summary;
+    if(prefill.narrative) sheet.querySelector('#fNarrative').value = prefill.narrative;
+    if(prefill.landlord591) sheet.querySelector('#fContact').value = prefill.landlord591;
+    (prefill.tags||[]).forEach(t => {
+      const chip = sheet.querySelector(`#fTags .chip[data-tag="${CSS.escape(t)}"]`);
+      if(chip) chip.click();
+    });
+    if(prefill.rating){
+      const sb = sheet.querySelector(`#fRating .star-btn[data-star="${prefill.rating}"]`);
+      if(sb) sb.click();
+    }
+  }
+
+  sheet.querySelector('#btnCancel').addEventListener('click', closeComposeModal);
+  backdrop.addEventListener('click', e => { if(e.target === backdrop) closeComposeModal(); });
+
+  sheet.querySelector('#btnSubmit').addEventListener('click', async () => {
+    const draft = {
+      title: sheet.querySelector('#fTitle').value.trim(),
+      city: sheet.querySelector('#fCity').value,
+      district: sheet.querySelector('#fDistrict').value.trim(),
+      road: sheet.querySelector('#fRoad').value.trim(),
+      tags: selectedTags.slice(),
+      rating: selectedRating,
+      summary: sheet.querySelector('#fSummary').value.trim(),
+      narrative: sheet.querySelector('#fNarrative').value.trim(),
+      landlord591: sheet.querySelector('#fContact').value.trim()
+    };
+    const errEl = sheet.querySelector('#fError');
+    if(!draft.title || draft.tags.length === 0 || !draft.rating || !draft.narrative){
+      errEl.classList.add('show');
+      return;
+    }
+    errEl.classList.remove('show');
+    const submitBtn = sheet.querySelector('#btnSubmit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = '發佈中…';
+    try{
+      await submitPost(draft);
+      closeComposeModal();
+      showToast('故事已發佈，謝謝分享！591資訊已為你解鎖');
+    }catch(e){
+      console.error(e);
+      errEl.textContent = '發佈失敗，請確認網路連線或稍後再試。';
+      errEl.classList.add('show');
+      submitBtn.disabled = false;
+      submitBtn.textContent = '發佈故事';
+    }
+  });
+}
+function closeComposeModal(){
+  const el = document.getElementById('composeBackdrop');
+  if(el) el.remove();
+}
+
+async function submitPost(draft){
+  const now = new Date();
+  const dateLabel = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const postRef = await addDoc(collection(db,'posts'), {
+    title: draft.title,
+    city: draft.city,
+    district: draft.district,
+    road: draft.road,
+    tags: draft.tags,
+    rating: draft.rating,
+    summary: draft.summary,
+    narrative: draft.narrative,
+    helpfulCount: 0,
+    dateLabel,
+    authorUid: currentUser.uid,
+    createdAt: serverTimestamp()
+  });
+  if(draft.landlord591){
+    await setDoc(doc(db,'posts',postRef.id,'private','contact'), {
+      landlord591: draft.landlord591
+    });
+  }
+  await setDoc(doc(db,'users',currentUser.uid), {
+    hasShared: true,
+    sharedAt: serverTimestamp()
+  }, { merge: true });
+  hasShared = true;
+  renderAuthBar();
+  renderList();
+}
+
+document.getElementById('fabCompose').addEventListener('click', () => openComposeModal(null));
+
+/* ---------------- bridge: prefill from 看房紀錄APP via ?draft= ---------------- */
+(function readDraftFromUrl(){
+  try{
+    const params = new URLSearchParams(location.search);
+    const raw = params.get('draft');
+    if(!raw) return;
+    const draft = JSON.parse(raw);
+    history.replaceState(null, '', location.pathname);
+    setTimeout(() => {
+      showToast('已從看房紀錄APP帶入草稿，請確認內容後發佈');
+      openComposeModal(draft);
+    }, 300);
+  }catch(e){ /* ignore malformed draft */ }
+})();
+
+/* ---------------- static examples (illustrative, not from Firestore) ---------------- */
+const EXAMPLES = [
+  {
+    id: 'KF-範例01',
+    title: '口頭談好2.8萬，隔天卻說房子租出去了',
+    city: '', district: '', road: '',
+    tags: ['口頭承諾但反悔','房子已出租卻仍刊登'],
+    rating: 1,
+    summary: '原價 29,800 元，房東口頭答應若不申請租金補貼可用 28,000 元承租；不到一天房東反悔說房子已經租出去了，但回頭查看591仍持續掛在網上，改由仲介刊登招租。',
+    narrative: '溝通當下房東明確表示，如果不申請租金補貼，願意用兩萬八千元承租，我們也答應了這個條件。沒想到不到二十四小時，房東就傳訊息說房子已經租給別人了。過沒多久回頭查看591房屋出租網，同一間房子仍掛在上面，變成由仲介刊登繼續招租。前後說法反覆，讓人感覺像是隨口的承諾根本不打算兌現，體驗非常不好。',
+    landlord591: '', helpfulCount: 4, dateLabel: '2026-08'
+  },
+  {
+    id: 'KF-範例02',
+    title: '說好不用先匯訂金，看屋當天卻被別人搶先下訂',
+    city: '', district: '', road: '',
+    tags: ['口頭承諾但反悔','用話術施壓成交'],
+    rating: 1,
+    summary: '房東透過仲介表示不用先匯款訂金，我們是「首選」，可以等實際看屋喜歡後再決定。看屋當天提出壁癌、洗衣機無地漏排水等需修繕問題後，當晚就被告知已有人直接匯款下訂，屋主拒絕租給我們。',
+    narrative: '一開始溝通時，仲介和房東都說不需要先匯訂金卡位，強調我們是首選人選，不用擔心房子被搶走，可以等看屋滿意後再決定要不要承租。到了實際看屋當天，我們認真檢查屋況，提出了幾個需要修繕的地方，包括牆面有壁癌、洗衣機放置處沒有地漏排水孔等問題。沒想到就在當天晚上，仲介通知我們有其他人直接匯款下訂金，屋主已經決定租給對方，我們就這樣被拒絕承租。前後態度轉變之快，讓人不禁懷疑「首選」的說法只是話術，一旦提出房屋的實際問題，馬上就被換掉。',
+    landlord591: '', helpfulCount: 7, dateLabel: '2026-08'
+  }
+];
+const exampleListEl = document.getElementById('exampleList');
+EXAMPLES.forEach(ex => exampleListEl.appendChild(buildCaseCard(ex.id, ex, true)));
+
+/* ---------------- init ---------------- */
+subscribe();
+</script>
+</body>
+</html>
