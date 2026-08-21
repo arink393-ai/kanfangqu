@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    match /posts/{postId} {
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 40
+        && request.resource.data.narrative is string
+        && request.resource.data.narrative.size() > 0
+        && request.resource.data.narrative.size() <= 1500
+        && request.resource.data.summary is string
+        && request.resource.data.summary.size() <= 150
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.tags is list
+        && request.resource.data.tags.size() >= 1
+        && request.resource.data.helpfulCount == 0;
+
+      allow update: if isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['helpfulCount'])
+        && request.resource.data.helpfulCount == resource.data.helpfulCount + 1;
+
+      allow delete: if false;
+
+      match /private/contact {
+        allow read: if isSignedIn()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.hasShared == true;
+
+        allow write: if isSignedIn()
+          && get(/databases/$(database)/documents/posts/$(postId)).data.authorUid == request.auth.uid;
+      }
+
+      match /likes/{uid} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.auth.uid == uid;
+        allow update, delete: if false;
+      }
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+  }
+}
