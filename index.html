@@ -136,7 +136,6 @@ h1.brand{
 .chip{
   font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:99px;border:1px solid var(--line);
   background:var(--surface);color:var(--muted);cursor:pointer;user-select:none;
-  transition:background .12s, color .12s, border-color .12s;
   -webkit-tap-highlight-color:transparent;outline:none;
 }
 .chip.active,.chip:active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
@@ -237,12 +236,20 @@ main{padding-top:10px;}
 .f-row .f-group{flex:1;min-width:0;}
 .f-label{font-family:'Manrope',sans-serif;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;display:block;}
 .f-hint{font-size:11.5px;color:var(--muted);margin-top:5px;}
-.f-group input[type=text],.f-group textarea,.f-group select{
+.f-group input[type=text],.f-group input[type=url],.f-group textarea,.f-group select{
   width:100%;font-family:'Noto Sans TC',sans-serif;font-size:14.5px;padding:11px 13px;
   border:1.5px solid var(--line);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);resize:vertical;
 }
-.f-group input[type=text]:focus,.f-group textarea:focus,.f-group select:focus{outline:2px solid var(--accent);outline-offset:1px;}
+.f-group input[type=text]:focus,.f-group input[type=url]:focus,.f-group textarea:focus,.f-group select:focus{outline:2px solid var(--accent);outline-offset:1px;}
 .f-group textarea{min-height:88px;line-height:1.6;}
+.url-paste-row{display:flex;gap:8px;}
+.url-paste-row input{flex:1;min-width:0;}
+.btn-paste{
+  flex-shrink:0;background:var(--surface-2);border:1.5px solid var(--line);color:var(--ink);
+  border-radius:var(--radius-md);padding:0 14px;font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'Noto Sans TC',sans-serif;-webkit-tap-highlight-color:transparent;outline:none;
+}
+.btn-paste:active{background:var(--accent-soft);border-color:var(--accent);}
 .chip-choice{display:flex;flex-wrap:wrap;gap:7px;}
 .chip-choice .chip{background:var(--surface);}
 .star-row{display:flex;gap:6px;}
@@ -393,6 +400,31 @@ function showToast(msg){
 function roughLocationText(d){
   const parts = [d.city, d.district, d.road].filter(Boolean);
   return parts.length ? parts.join(' ') : '地區未提供';
+}
+
+/* ---------------- compose draft local autosave ---------------- */
+function draftKey(editId){ return 'kanfangqu_draft_' + (editId || 'new'); }
+function loadDraftFromStorage(key){
+  try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
+}
+function saveDraftToStorage(key, draft){
+  try{ localStorage.setItem(key, JSON.stringify(draft)); }catch(e){}
+}
+function clearDraftFromStorage(key){
+  try{ localStorage.removeItem(key); }catch(e){}
+}
+
+/* ---------------- 591 url / contact note combine-split ---------------- */
+function splitLandlord591(text){
+  if(!text) return { url:'', note:'' };
+  const lines = String(text).split('\n');
+  if(/^https?:\/\//i.test((lines[0]||'').trim())){
+    return { url: lines[0].trim(), note: lines.slice(1).join('\n').trim() };
+  }
+  return { url:'', note: text.trim() };
+}
+function joinLandlord591(url, note){
+  return [String(url||'').trim(), String(note||'').trim()].filter(Boolean).join('\n');
 }
 
 /* ---------------- auth ---------------- */
@@ -643,8 +675,14 @@ function openComposeModal(prefill, editId){
     <div class="f-group"><label class="f-label">完整看房與談判過程</label>
       <textarea id="fNarrative" maxlength="1500" style="min-height:140px" placeholder="說說事情的來龍去脈..."></textarea>
     </div>
-    <div class="f-group"><label class="f-label">房東／房仲在591上的聯絡方式或連結（選填）</label>
-      <textarea id="fContact" maxlength="300" placeholder="例：591刊登連結、房仲公司名稱與業務電話"></textarea>
+    <div class="f-group"><label class="f-label">591 物件網址（選填）</label>
+      <div class="url-paste-row">
+        <input type="url" id="fUrl591" maxlength="300" placeholder="貼上591或其他刊登平台的網址">
+        <button type="button" class="btn-paste" id="btnPasteUrl">📋 貼上</button>
+      </div>
+    </div>
+    <div class="f-group"><label class="f-label">其他聯絡資訊（姓名／電話／備註，選填）</label>
+      <textarea id="fContactNote" maxlength="300" placeholder="例：房仲公司名稱與業務電話"></textarea>
       <p class="f-hint">這是房東／房仲自己在591上公開刊登的資訊。此欄位只有「登入且已分享過故事」的使用者才看得到；仍建議避免貼上完整門牌或個人手機以外的私人資訊。</p>
     </div>
     <p class="f-error" id="fError">請填寫標題、至少一個事件類型、誠信評分與完整過程後再發佈。</p>
@@ -676,38 +714,89 @@ function openComposeModal(prefill, editId){
     });
   });
 
-  if(prefill){
-    if(prefill.title) sheet.querySelector('#fTitle').value = prefill.title;
-    if(prefill.city) sheet.querySelector('#fCity').value = prefill.city;
-    if(prefill.district) sheet.querySelector('#fDistrict').value = prefill.district;
-    if(prefill.road) sheet.querySelector('#fRoad').value = prefill.road;
-    if(prefill.summary) sheet.querySelector('#fSummary').value = prefill.summary;
-    if(prefill.narrative) sheet.querySelector('#fNarrative').value = prefill.narrative;
-    if(prefill.landlord591) sheet.querySelector('#fContact').value = prefill.landlord591;
-    (prefill.tags||[]).forEach(t => {
+  const dKey = draftKey(editId);
+  const savedDraft = prefill ? null : loadDraftFromStorage(dKey);
+  const effectivePrefill = savedDraft || prefill;
+
+  if(effectivePrefill){
+    const p = effectivePrefill;
+    if(p.title) sheet.querySelector('#fTitle').value = p.title;
+    if(p.city) sheet.querySelector('#fCity').value = p.city;
+    if(p.district) sheet.querySelector('#fDistrict').value = p.district;
+    if(p.road) sheet.querySelector('#fRoad').value = p.road;
+    if(p.summary) sheet.querySelector('#fSummary').value = p.summary;
+    if(p.narrative) sheet.querySelector('#fNarrative').value = p.narrative;
+    if(p.landlord591){
+      const {url, note} = splitLandlord591(p.landlord591);
+      if(url) sheet.querySelector('#fUrl591').value = url;
+      if(note) sheet.querySelector('#fContactNote').value = note;
+    }
+    (p.tags||[]).forEach(t => {
       const chip = sheet.querySelector(`#fTags .chip[data-tag="${CSS.escape(t)}"]`);
       if(chip) chip.click();
     });
-    if(prefill.rating){
-      const sb = sheet.querySelector(`#fRating .star-btn[data-star="${prefill.rating}"]`);
+    if(p.rating){
+      const sb = sheet.querySelector(`#fRating .star-btn[data-star="${p.rating}"]`);
       if(sb) sb.click();
     }
+    if(savedDraft) showToast('已還原上次未完成的草稿');
   }
+
+  function currentDraftValues(){
+    return {
+      title: sheet.querySelector('#fTitle').value,
+      city: sheet.querySelector('#fCity').value,
+      district: sheet.querySelector('#fDistrict').value,
+      road: sheet.querySelector('#fRoad').value,
+      tags: selectedTags.slice(),
+      rating: selectedRating,
+      summary: sheet.querySelector('#fSummary').value,
+      narrative: sheet.querySelector('#fNarrative').value,
+      landlord591: joinLandlord591(sheet.querySelector('#fUrl591').value, sheet.querySelector('#fContactNote').value)
+    };
+  }
+  let autosaveTimer = null;
+  function scheduleAutosave(){
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => saveDraftToStorage(dKey, currentDraftValues()), 400);
+  }
+  sheet.querySelectorAll('input, textarea, select').forEach(el => {
+    el.addEventListener('input', scheduleAutosave);
+    el.addEventListener('change', scheduleAutosave);
+  });
+  sheet.querySelectorAll('#fTags .chip, #fRating .star-btn').forEach(btn => {
+    btn.addEventListener('click', scheduleAutosave);
+  });
+
+  sheet.querySelector('#btnPasteUrl').addEventListener('click', async () => {
+    try{
+      const text = await navigator.clipboard.readText();
+      if(text && text.trim()){
+        sheet.querySelector('#fUrl591').value = text.trim();
+        scheduleAutosave();
+      } else {
+        showToast('剪貼簿目前是空的');
+      }
+    }catch(e){
+      showToast('無法讀取剪貼簿，請手動長按貼上');
+    }
+  });
 
   sheet.querySelector('#btnCancel').addEventListener('click', closeComposeModal);
   backdrop.addEventListener('click', e => { if(e.target === backdrop) closeComposeModal(); });
 
   sheet.querySelector('#btnSubmit').addEventListener('click', async () => {
+    const raw = currentDraftValues();
     const draft = {
-      title: sheet.querySelector('#fTitle').value.trim(),
-      city: sheet.querySelector('#fCity').value,
-      district: sheet.querySelector('#fDistrict').value.trim(),
-      road: sheet.querySelector('#fRoad').value.trim(),
-      tags: selectedTags.slice(),
-      rating: selectedRating,
-      summary: sheet.querySelector('#fSummary').value.trim(),
-      narrative: sheet.querySelector('#fNarrative').value.trim(),
-      landlord591: sheet.querySelector('#fContact').value.trim()
+      title: raw.title.trim(),
+      city: raw.city,
+      district: raw.district.trim(),
+      road: raw.road.trim(),
+      tags: raw.tags,
+      rating: raw.rating,
+      summary: raw.summary.trim(),
+      narrative: raw.narrative.trim(),
+      landlord591: raw.landlord591
     };
     const errEl = sheet.querySelector('#fError');
     if(!draft.title || draft.tags.length === 0 || !draft.rating || !draft.narrative){
@@ -721,10 +810,12 @@ function openComposeModal(prefill, editId){
     try{
       if(isEdit){
         await updatePost(editId, draft);
+        clearDraftFromStorage(dKey);
         closeComposeModal();
         showToast('故事已更新');
       } else {
         await submitPost(draft);
+        clearDraftFromStorage(dKey);
         closeComposeModal();
         showToast('故事已發佈，謝謝分享！591資訊已為你解鎖');
       }
