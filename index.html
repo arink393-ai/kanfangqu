@@ -86,7 +86,10 @@ h1.brand{
   font-family:'Noto Sans TC',sans-serif;
 }
 .header-auth-logged{display:flex;align-items:center;gap:6px;}
-.header-unlock{font-size:14px;line-height:1;flex-shrink:0;}
+.header-points{
+  font-family:'Manrope',sans-serif;font-size:12px;font-weight:800;flex-shrink:0;
+  background:var(--warn-soft);color:var(--warn);padding:4px 9px;border-radius:99px;white-space:nowrap;
+}
 .header-avatar{
   width:28px;height:28px;border-radius:50%;flex-shrink:0;
   border:2px solid var(--accent-soft);object-fit:cover;background:var(--surface-2);
@@ -217,6 +220,40 @@ main{padding-top:10px;}
 .btn-helpful.liked{background:var(--good-soft);color:var(--good);}
 .help-count{font-family:'Manrope',sans-serif;font-weight:800;}
 .card-footer .case-date{margin-left:0;}
+
+.comments-section{margin-top:14px;}
+.btn-toggle-comments{
+  background:none;border:none;color:var(--accent);font-size:13px;font-weight:600;
+  padding:4px 0;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+  -webkit-tap-highlight-color:transparent;outline:none;
+}
+.comments-body{margin-top:10px;}
+.comments-body.hide{display:none;}
+.comments-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+.comment-empty{font-size:12.5px;color:var(--muted-2);margin:4px 0;}
+.comment-item{background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;}
+.comment-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.comment-author{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted-2);}
+.comment-del{background:none;border:none;color:var(--danger);font-size:11px;cursor:pointer;padding:2px 4px;-webkit-tap-highlight-color:transparent;}
+.comment-text-box{font-size:13.5px;color:var(--ink);margin:0;white-space:pre-wrap;line-height:1.6;}
+.comment-img{max-width:100%;border-radius:var(--radius-sm);margin-top:8px;display:block;}
+.comment-composer textarea{
+  width:100%;font-family:'Noto Sans TC',sans-serif;font-size:13.5px;padding:10px 12px;min-height:64px;
+  border:1.5px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);resize:vertical;
+}
+.comment-actions-row{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;}
+.btn-attach{
+  font-size:12px;font-weight:600;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);
+  border-radius:99px;padding:6px 12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+.comment-file-name{font-size:11.5px;color:var(--muted-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
+.btn-comment-submit{
+  margin-left:auto;background:var(--accent);color:var(--accent-ink);border:none;border-radius:99px;
+  padding:7px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+  -webkit-tap-highlight-color:transparent;outline:none;
+}
+.btn-comment-submit:disabled{background:var(--muted-2);cursor:not-allowed;}
 
 .fab{
   position:fixed;right:18px;bottom:22px;background:var(--accent);color:var(--accent-ink);
@@ -352,6 +389,9 @@ import {
   getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc, deleteDoc,
   onSnapshot, query, orderBy, limit, serverTimestamp, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref as storageRef, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 /* =========================================================================
    ⚠️ 設定區：請把下面換成你自己 Firebase 專案的設定值
@@ -371,6 +411,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 
 const TAG_OPTIONS = ["口頭承諾但反悔","收了斡旋/訂金卻不算數","房子已出租卻仍刊登","隱瞞房屋瑕疵","拖延/不處理修繕","不退還訂金或押金","臨時調漲租金或條件","用話術施壓成交","其他"];
@@ -382,8 +423,9 @@ const statCountEl = document.getElementById('statCount');
 const statAvgEl = document.getElementById('statAvg');
 
 let currentUser = null;
-let hasShared = false;
+let currentPoints = 0;
 let allDocs = [];         // [{id, data}]
+let commentUnsubscribers = {};
 let pendingDraftAfterLogin = null;
 
 function escapeHtml(s){
@@ -433,7 +475,7 @@ function renderAuthBar(){
   if(currentUser){
     authBar.innerHTML = `
       <div class="header-auth-logged">
-        <span class="header-unlock" title="${hasShared?'已解鎖591資訊':'分享故事解鎖591資訊'}">${hasShared?'🔓':'🔒'}</span>
+        <span class="header-points" title="積分可用來解鎖別人故事的591資訊，分享故事可獲得積分">💰${currentPoints}</span>
         <img class="header-avatar" src="${escapeHtml(currentUser.photoURL||'')}" title="${escapeHtml(currentUser.displayName||currentUser.email||'已登入')}" onerror="this.style.visibility='hidden'">
         <button class="header-logout" id="btnLogout">登出</button>
       </div>`;
@@ -451,14 +493,16 @@ async function handleLogin(){
     console.error(e);
   }
 }
+let unsubUserDoc = null;
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
-  hasShared = false;
+  if(unsubUserDoc){ unsubUserDoc(); unsubUserDoc = null; }
+  currentPoints = 0;
   if(user){
-    try{
-      const snap = await getDoc(doc(db,'users',user.uid));
-      hasShared = snap.exists() && snap.data().hasShared === true;
-    }catch(e){ hasShared = false; }
+    unsubUserDoc = onSnapshot(doc(db,'users',user.uid), snap => {
+      currentPoints = snap.exists() ? (Number(snap.data().points)||0) : 0;
+      renderAuthBar();
+    });
   }
   renderAuthBar();
   renderList();
@@ -497,6 +541,8 @@ function passesFilter(d){
 }
 
 function renderList(){
+  Object.values(commentUnsubscribers).forEach(fn => fn());
+  commentUnsubscribers = {};
   const visible = allDocs.filter(p => passesFilter(p.data));
   postsListEl.innerHTML = '';
   visible.forEach(p => postsListEl.appendChild(buildCaseCard(p.id, p.data)));
@@ -531,7 +577,7 @@ function buildCaseCard(id, d){
     <p class="narrative-box">${escapeHtml(d.narrative||'')}</p>
     <div class="field-label">房東／房仲591聯絡資訊</div>
     <div class="landlord591-value" id="v591-${id}"></div>
-    <button class="landlord591-locked" id="l591-${id}" type="button">🔒 <span>分享你的看房故事以解鎖591聯絡資訊</span></button>
+    <button class="landlord591-locked" id="l591-${id}" type="button">🔒 <span>解鎖591聯絡資訊（-100積分）</span></button>
     ${isOwner ? `<div class="owner-actions">
       <button class="btn-edit" data-action="edit" data-id="${id}">✏️ 編輯</button>
       <button class="btn-delete" data-action="delete" data-id="${id}">🗑️ 刪除</button>
@@ -539,16 +585,26 @@ function buildCaseCard(id, d){
     <div class="card-footer">
       <button class="btn-helpful" data-action="helpful" data-id="${id}">🙋 我也遇到類似狀況 <span class="help-count">${Number(d.helpfulCount)||0}</span></button>
       <span class="case-date">${escapeHtml(d.dateLabel||'')}</span>
+    </div>
+    <div class="comments-section">
+      <button type="button" class="btn-toggle-comments" id="ctoggle-${id}">💬 留言</button>
+      <div class="comments-body hide" id="cbody-${id}">
+        <div class="comments-list" id="clist-${id}"></div>
+        <div class="comment-composer" id="ccomposer-${id}"></div>
+      </div>
     </div>`;
 
   setup591Box(id, art);
   const helpBtn = art.querySelector('.btn-helpful');
   if(hasLikedLocally(id)) helpBtn.classList.add('liked');
   helpBtn.addEventListener('click', () => handleHelpful(id, helpBtn));
-  art.querySelector('.landlord591-locked').addEventListener('click', () => {
+  art.querySelector('.landlord591-locked').addEventListener('click', async () => {
     if(!currentUser){ handleLogin(); return; }
-    if(!hasShared){ showToast('分享一則你自己的看房故事後即可解鎖591資訊'); openComposeModal(null); }
+    if(currentUser.uid === d.authorUid) return;
+    const ok = await unlockPost(id);
+    if(ok) setup591Box(id, art);
   });
+  art.querySelector('#ctoggle-'+CSS.escape(id)).addEventListener('click', () => toggleComments(id, art, d.authorUid));
   if(isOwner){
     art.querySelector('.btn-edit').addEventListener('click', () => startEditPost(id));
     art.querySelector('.btn-delete').addEventListener('click', () => deletePostFlow(id));
@@ -559,15 +615,42 @@ function buildCaseCard(id, d){
 async function setup591Box(id, art){
   const valueBox = art.querySelector('#v591-' + CSS.escape(id));
   const lockedBtn = art.querySelector('#l591-' + CSS.escape(id));
-  if(currentUser && hasShared){
+  if(currentUser){
     try{
       const snap = await getDoc(doc(db,'posts',id,'private','contact'));
       valueBox.textContent = (snap.exists() && snap.data().landlord591) ? snap.data().landlord591 : '作者未提供591資訊。';
       valueBox.classList.add('show');
       lockedBtn.classList.add('hide');
     }catch(e){
-      // permission-denied or not found -> stay locked
+      // permission-denied -> stay locked
     }
+  }
+}
+
+/* ---------------- points & per-post unlock ---------------- */
+async function unlockPost(id){
+  try{
+    await runTransaction(db, async (tx) => {
+      const userRef = doc(db,'users',currentUser.uid);
+      const unlockRef = doc(db,'posts',id,'unlocks',currentUser.uid);
+      const userSnap = await tx.get(userRef);
+      const unlockSnap = await tx.get(unlockRef);
+      if(unlockSnap.exists()) return;
+      const pts = Number(userSnap.exists() ? userSnap.data().points : 0) || 0;
+      if(pts < 100){ throw new Error('INSUFFICIENT_POINTS'); }
+      tx.set(userRef, { points: pts - 100 }, { merge: true });
+      tx.set(unlockRef, { unlockedAt: serverTimestamp() });
+    });
+    showToast('已解鎖591資訊，扣除100積分');
+    return true;
+  }catch(e){
+    if(e && e.message === 'INSUFFICIENT_POINTS'){
+      showToast('積分不足（需要100分），分享一則故事可獲得100積分');
+    } else {
+      console.error(e);
+      showToast('解鎖失敗，請稍後再試');
+    }
+    return false;
   }
 }
 
@@ -605,6 +688,126 @@ async function handleHelpful(id, btn){
     // local mark above already prevents further attempts either way.
   }
   renderList();
+}
+
+/* ---------------- comments ---------------- */
+function toggleComments(id, art, postAuthorUid){
+  const body = art.querySelector('#cbody-'+CSS.escape(id));
+  const isHidden = body.classList.contains('hide');
+  if(!isHidden){ body.classList.add('hide'); return; }
+  body.classList.remove('hide');
+  if(!body.dataset.loaded){
+    body.dataset.loaded = '1';
+    renderCommentComposer(id, art);
+    subscribeComments(id, art, postAuthorUid);
+  }
+}
+
+function subscribeComments(id, art, postAuthorUid){
+  const listEl = art.querySelector('#clist-'+CSS.escape(id));
+  const q = query(collection(db,'posts',id,'comments'), orderBy('createdAt','asc'), limit(100));
+  const unsub = onSnapshot(q, snap => {
+    listEl.innerHTML = '';
+    if(snap.empty){
+      const p = document.createElement('p');
+      p.className = 'comment-empty';
+      p.textContent = '還沒有留言，第一個留言吧！';
+      listEl.appendChild(p);
+      return;
+    }
+    snap.docs.forEach(docSnap => {
+      listEl.appendChild(buildCommentItem(docSnap.id, docSnap.data(), id, postAuthorUid));
+    });
+  }, err => { console.error(err); });
+  commentUnsubscribers[id] = unsub;
+}
+
+function buildCommentItem(commentId, c, postId, postAuthorUid){
+  const div = document.createElement('div');
+  div.className = 'comment-item';
+  const tag = '網友#' + String(c.authorUid||'').slice(0,4).toUpperCase();
+  const canDelete = !!(currentUser && (currentUser.uid === c.authorUid || currentUser.uid === postAuthorUid));
+  div.innerHTML = `
+    <div class="comment-meta">
+      <span class="comment-author">${escapeHtml(tag)}</span>
+      ${canDelete ? `<button type="button" class="comment-del">刪除</button>` : ''}
+    </div>
+    <p class="comment-text-box">${escapeHtml(c.text||'')}</p>
+    ${c.imageUrl ? `<img class="comment-img" src="${escapeHtml(c.imageUrl)}" alt="留言截圖" loading="lazy">` : ''}`;
+  if(canDelete){
+    div.querySelector('.comment-del').addEventListener('click', async () => {
+      if(!confirm('確定要刪除這則留言嗎？')) return;
+      try{ await deleteDoc(doc(db,'posts',postId,'comments',commentId)); }
+      catch(e){ console.error(e); showToast('刪除失敗，請稍後再試'); }
+    });
+  }
+  return div;
+}
+
+function renderCommentComposer(id, art){
+  const wrap = art.querySelector('#ccomposer-'+CSS.escape(id));
+  wrap.innerHTML = `
+    <textarea class="comment-text-input" maxlength="500" placeholder="${currentUser ? '留言鼓勵或提供你知道的資訊…' : '登入後才能留言'}"></textarea>
+    <div class="comment-actions-row">
+      <label class="btn-attach">📎 附上截圖<input type="file" accept="image/*" class="comment-file-input" hidden></label>
+      <span class="comment-file-name"></span>
+      <button type="button" class="btn-comment-submit">送出留言</button>
+    </div>`;
+  const textEl = wrap.querySelector('.comment-text-input');
+  const fileInput = wrap.querySelector('.comment-file-input');
+  const fileNameEl = wrap.querySelector('.comment-file-name');
+  const submitBtn = wrap.querySelector('.btn-comment-submit');
+  let pendingFile = null;
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files && fileInput.files[0];
+    if(f && f.size > 5*1024*1024){
+      showToast('圖片檔案請小於 5MB');
+      fileInput.value = '';
+      pendingFile = null;
+      fileNameEl.textContent = '';
+      return;
+    }
+    pendingFile = f || null;
+    fileNameEl.textContent = pendingFile ? pendingFile.name : '';
+  });
+
+  submitBtn.addEventListener('click', async () => {
+    if(!currentUser){ handleLogin(); return; }
+    const text = textEl.value.trim();
+    if(!text && !pendingFile){ showToast('請輸入留言內容或附上截圖'); return; }
+    submitBtn.disabled = true;
+    submitBtn.textContent = '送出中…';
+    try{
+      let imageUrl = '';
+      if(pendingFile){
+        imageUrl = await uploadCommentImage(id, pendingFile);
+      }
+      const commentData = {
+        text: text || '（附上截圖）',
+        authorUid: currentUser.uid,
+        createdAt: serverTimestamp()
+      };
+      if(imageUrl) commentData.imageUrl = imageUrl;
+      await addDoc(collection(db,'posts',id,'comments'), commentData);
+      textEl.value = '';
+      pendingFile = null;
+      fileInput.value = '';
+      fileNameEl.textContent = '';
+    }catch(e){
+      console.error(e);
+      showToast('留言失敗，請稍後再試');
+    }
+    submitBtn.disabled = false;
+    submitBtn.textContent = '送出留言';
+  });
+}
+
+async function uploadCommentImage(postId, file){
+  const path = `comment-images/${postId}/${currentUser.uid}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+  const fileRef = storageRef(storage, path);
+  await uploadBytes(fileRef, file);
+  return await getDownloadURL(fileRef);
 }
 
 /* ---------------- filters ---------------- */
@@ -855,12 +1058,12 @@ async function submitPost(draft){
       landlord591: draft.landlord591
     });
   }
-  await setDoc(doc(db,'users',currentUser.uid), {
-    hasShared: true,
-    sharedAt: serverTimestamp()
-  }, { merge: true });
-  hasShared = true;
-  renderAuthBar();
+  await runTransaction(db, async (tx) => {
+    const userRef = doc(db,'users',currentUser.uid);
+    const userSnap = await tx.get(userRef);
+    const pts = Number(userSnap.exists() ? userSnap.data().points : 0) || 0;
+    tx.set(userRef, { points: pts + 100 }, { merge: true });
+  });
   renderList();
 }
 
