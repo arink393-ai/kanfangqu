@@ -148,19 +148,17 @@ main{padding-top:10px;}
   font-family:'Manrope',sans-serif;font-size:12px;font-weight:800;letter-spacing:.04em;
   color:var(--ink);margin:28px 0 4px;display:flex;align-items:center;gap:8px;
 }
-.example-note{font-size:12.5px;color:var(--muted);margin:0 0 14px;}
 .empty-state{
   border:1.5px dashed var(--line);border-radius:var(--radius-md);padding:26px 16px;
   text-align:center;color:var(--muted);font-size:13.5px;margin-top:10px;background:var(--surface);
 }
 
-#postsList,#exampleList{display:flex;flex-direction:column;gap:14px;}
+#postsList{display:flex;flex-direction:column;gap:14px;}
 
 .case-card{
   background:var(--surface);border:1px solid var(--line);
   border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:18px;
 }
-.case-card.is-example{opacity:.9;}
 .card-top-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
 .rating-badge{
   display:flex;align-items:center;gap:5px;flex-shrink:0;
@@ -201,6 +199,14 @@ main{padding-top:10px;}
 }
 .landlord591-locked:hover{border-color:var(--accent);color:var(--accent);}
 .landlord591-locked.hide{display:none;}
+
+.owner-actions{display:flex;gap:8px;margin-top:14px;}
+.btn-edit,.btn-delete{
+  font-size:12px;font-weight:600;padding:6px 12px;border-radius:99px;border:1px solid var(--line);
+  background:var(--surface-2);color:var(--muted);cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+  -webkit-tap-highlight-color:transparent;outline:none;
+}
+.btn-delete{color:var(--danger);}
 
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);}
 .btn-helpful{
@@ -317,10 +323,6 @@ footer.site{max-width:640px;margin:40px auto 0;padding:20px 16px 40px;border-top
 </div>
 
 <main class="wrap">
-  <div class="section-label">精選範例</div>
-  <p class="example-note">以下兩則是真實案例整理而成的示範，說明每則故事會記錄哪些內容（非即時互動）。</p>
-  <div id="exampleList"></div>
-
   <div class="section-label">全部分享</div>
   <div id="postsList"></div>
   <div id="emptyState" class="empty-state" style="display:none;">目前還沒有真實案例，成為第一個分享故事的人吧！</div>
@@ -340,7 +342,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, addDoc, setDoc, getDoc,
+  getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc, deleteDoc,
   onSnapshot, query, orderBy, limit, serverTimestamp, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -465,15 +467,16 @@ function passesFilter(d){
 function renderList(){
   const visible = allDocs.filter(p => passesFilter(p.data));
   postsListEl.innerHTML = '';
-  visible.forEach(p => postsListEl.appendChild(buildCaseCard(p.id, p.data, false)));
+  visible.forEach(p => postsListEl.appendChild(buildCaseCard(p.id, p.data)));
   emptyStateEl.style.display = allDocs.length === 0 ? 'block' : 'none';
 }
 
 /* ---------------- render one case card ---------------- */
-function buildCaseCard(id, d, isExample){
+function buildCaseCard(id, d){
   const art = document.createElement('article');
-  art.className = 'case-card' + (isExample ? ' is-example' : '');
-  const caseTag = isExample ? '' : ('#' + id.slice(0,6).toUpperCase());
+  art.className = 'case-card';
+  const caseTag = '#' + id.slice(0,6).toUpperCase();
+  const isOwner = !!(currentUser && currentUser.uid === d.authorUid);
 
   const ratingNum = Number(d.rating) || 0;
   const badgeClass = ratingNum ? (ratingNum <= 2 ? '' : (ratingNum === 3 ? ' r-mid' : ' r-good')) : '';
@@ -482,7 +485,7 @@ function buildCaseCard(id, d, isExample){
   art.innerHTML = `
     <div class="card-top-row">
       <span class="rating-badge${badgeClass}"><span class="star">★</span>${ratingNum || '–'}/5</span>
-      ${caseTag ? `<span class="case-tab">${escapeHtml(caseTag)}</span>` : ''}
+      <span class="case-tab">${escapeHtml(caseTag)}</span>
       <span class="case-date">${escapeHtml(d.dateLabel || '')}</span>
     </div>
     <h3 class="case-title">${escapeHtml(d.title||'（未命名故事）')}</h3>
@@ -497,26 +500,26 @@ function buildCaseCard(id, d, isExample){
     <div class="field-label">房東／房仲591聯絡資訊</div>
     <div class="landlord591-value" id="v591-${id}"></div>
     <button class="landlord591-locked" id="l591-${id}" type="button">🔒 <span>分享你的看房故事以解鎖591聯絡資訊</span></button>
+    ${isOwner ? `<div class="owner-actions">
+      <button class="btn-edit" data-action="edit" data-id="${id}">✏️ 編輯</button>
+      <button class="btn-delete" data-action="delete" data-id="${id}">🗑️ 刪除</button>
+    </div>` : ''}
     <div class="card-footer">
-      <button class="btn-helpful" data-action="helpful" data-id="${id}"${isExample?' disabled':''}>🙋 我也遇到類似狀況 <span class="help-count">${Number(d.helpfulCount)||0}</span></button>
+      <button class="btn-helpful" data-action="helpful" data-id="${id}">🙋 我也遇到類似狀況 <span class="help-count">${Number(d.helpfulCount)||0}</span></button>
       <span class="case-date">${escapeHtml(d.dateLabel||'')}</span>
     </div>`;
 
-  if(isExample){
-    const lockedBtn = art.querySelector('.landlord591-locked');
-    lockedBtn.classList.add('hide');
-    const valueBox = art.querySelector('.landlord591-value');
-    valueBox.textContent = d.landlord591 || '作者未提供591資訊。';
-    valueBox.classList.add('show');
-  } else {
-    setup591Box(id, art);
-    const helpBtn = art.querySelector('.btn-helpful');
-    if(hasLikedLocally(id)) helpBtn.classList.add('liked');
-    helpBtn.addEventListener('click', () => handleHelpful(id, helpBtn));
-    art.querySelector('.landlord591-locked').addEventListener('click', () => {
-      if(!currentUser){ handleLogin(); return; }
-      if(!hasShared){ showToast('分享一則你自己的看房故事後即可解鎖591資訊'); openComposeModal(null); }
-    });
+  setup591Box(id, art);
+  const helpBtn = art.querySelector('.btn-helpful');
+  if(hasLikedLocally(id)) helpBtn.classList.add('liked');
+  helpBtn.addEventListener('click', () => handleHelpful(id, helpBtn));
+  art.querySelector('.landlord591-locked').addEventListener('click', () => {
+    if(!currentUser){ handleLogin(); return; }
+    if(!hasShared){ showToast('分享一則你自己的看房故事後即可解鎖591資訊'); openComposeModal(null); }
+  });
+  if(isOwner){
+    art.querySelector('.btn-edit').addEventListener('click', () => startEditPost(id));
+    art.querySelector('.btn-delete').addEventListener('click', () => deletePostFlow(id));
   }
   return art;
 }
@@ -597,13 +600,14 @@ document.getElementById('btnResetFilter').addEventListener('click', () => {
 });
 
 /* ---------------- compose modal ---------------- */
-function openComposeModal(prefill){
+function openComposeModal(prefill, editId){
   closeComposeModal();
   if(!currentUser){
     pendingDraftAfterLogin = prefill || {};
     handleLogin();
     return;
   }
+  const isEdit = !!editId;
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
   backdrop.id = 'composeBackdrop';
@@ -611,7 +615,7 @@ function openComposeModal(prefill){
   sheet.className = 'modal-sheet';
 
   sheet.innerHTML = `
-    <h2>分享看房故事</h2>
+    <h2>${isEdit ? '編輯故事' : '分享看房故事'}</h2>
     <p class="modal-sub">以「${escapeHtml(currentUser.displayName||currentUser.email||'你的帳號')}」匿名發佈・頁面上不會顯示你的帳號資訊</p>
     <div class="f-group"><label class="f-label">故事標題</label>
       <input type="text" id="fTitle" maxlength="40" placeholder="例：說好的租金隔天就反悔">
@@ -646,7 +650,7 @@ function openComposeModal(prefill){
     <p class="f-error" id="fError">請填寫標題、至少一個事件類型、誠信評分與完整過程後再發佈。</p>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" id="btnCancel">取消</button>
-      <button type="button" class="btn-primary" id="btnSubmit">發佈故事</button>
+      <button type="button" class="btn-primary" id="btnSubmit">${isEdit ? '儲存修改' : '發佈故事'}</button>
     </div>`;
 
   backdrop.appendChild(sheet);
@@ -713,17 +717,23 @@ function openComposeModal(prefill){
     errEl.classList.remove('show');
     const submitBtn = sheet.querySelector('#btnSubmit');
     submitBtn.disabled = true;
-    submitBtn.textContent = '發佈中…';
+    submitBtn.textContent = isEdit ? '儲存中…' : '發佈中…';
     try{
-      await submitPost(draft);
-      closeComposeModal();
-      showToast('故事已發佈，謝謝分享！591資訊已為你解鎖');
+      if(isEdit){
+        await updatePost(editId, draft);
+        closeComposeModal();
+        showToast('故事已更新');
+      } else {
+        await submitPost(draft);
+        closeComposeModal();
+        showToast('故事已發佈，謝謝分享！591資訊已為你解鎖');
+      }
     }catch(e){
       console.error(e);
-      errEl.textContent = '發佈失敗，請確認網路連線或稍後再試。';
+      errEl.textContent = (isEdit ? '儲存失敗' : '發佈失敗') + '，請確認網路連線或稍後再試。';
       errEl.classList.add('show');
       submitBtn.disabled = false;
-      submitBtn.textContent = '發佈故事';
+      submitBtn.textContent = isEdit ? '儲存修改' : '發佈故事';
     }
   });
 }
@@ -763,6 +773,54 @@ async function submitPost(draft){
   renderList();
 }
 
+async function updatePost(postId, draft){
+  await updateDoc(doc(db,'posts',postId), {
+    title: draft.title,
+    city: draft.city,
+    district: draft.district,
+    road: draft.road,
+    tags: draft.tags,
+    rating: draft.rating,
+    summary: draft.summary,
+    narrative: draft.narrative
+  });
+  if(draft.landlord591){
+    await setDoc(doc(db,'posts',postId,'private','contact'), {
+      landlord591: draft.landlord591
+    });
+  } else {
+    try{ await deleteDoc(doc(db,'posts',postId,'private','contact')); }catch(e){}
+  }
+  renderList();
+}
+
+async function startEditPost(id){
+  const post = allDocs.find(p => p.id === id);
+  if(!post) return;
+  let landlord591 = '';
+  try{
+    const snap = await getDoc(doc(db,'posts',id,'private','contact'));
+    if(snap.exists()) landlord591 = snap.data().landlord591 || '';
+  }catch(e){}
+  openComposeModal({
+    title: post.data.title, city: post.data.city, district: post.data.district, road: post.data.road,
+    tags: post.data.tags, rating: post.data.rating, summary: post.data.summary, narrative: post.data.narrative,
+    landlord591
+  }, id);
+}
+
+async function deletePostFlow(id){
+  if(!confirm('確定要刪除這則故事嗎？此動作無法復原。')) return;
+  try{
+    try{ await deleteDoc(doc(db,'posts',id,'private','contact')); }catch(e){}
+    await deleteDoc(doc(db,'posts',id));
+    showToast('已刪除故事');
+  }catch(e){
+    console.error(e);
+    showToast('刪除失敗，請稍後再試');
+  }
+}
+
 document.getElementById('fabCompose').addEventListener('click', () => openComposeModal(null));
 
 /* ---------------- bridge: prefill from 看房紀錄APP via ?draft= ---------------- */
@@ -779,32 +837,6 @@ document.getElementById('fabCompose').addEventListener('click', () => openCompos
     }, 300);
   }catch(e){ /* ignore malformed draft */ }
 })();
-
-/* ---------------- static examples (illustrative, not from Firestore) ---------------- */
-const EXAMPLES = [
-  {
-    id: 'KF-範例01',
-    title: '口頭談好2.8萬，隔天卻說房子租出去了',
-    city: '', district: '', road: '',
-    tags: ['口頭承諾但反悔','房子已出租卻仍刊登'],
-    rating: 1,
-    summary: '原價 29,800 元，房東口頭答應若不申請租金補貼可用 28,000 元承租；不到一天房東反悔說房子已經租出去了，但回頭查看591仍持續掛在網上，改由仲介刊登招租。',
-    narrative: '溝通當下房東明確表示，如果不申請租金補貼，願意用兩萬八千元承租，我們也答應了這個條件。沒想到不到二十四小時，房東就傳訊息說房子已經租給別人了。過沒多久回頭查看591房屋出租網，同一間房子仍掛在上面，變成由仲介刊登繼續招租。前後說法反覆，讓人感覺像是隨口的承諾根本不打算兌現，體驗非常不好。',
-    landlord591: '', helpfulCount: 4, dateLabel: '2026-08'
-  },
-  {
-    id: 'KF-範例02',
-    title: '說好不用先匯訂金，看屋當天卻被別人搶先下訂',
-    city: '', district: '', road: '',
-    tags: ['口頭承諾但反悔','用話術施壓成交'],
-    rating: 1,
-    summary: '房東透過仲介表示不用先匯款訂金，我們是「首選」，可以等實際看屋喜歡後再決定。看屋當天提出壁癌、洗衣機無地漏排水等需修繕問題後，當晚就被告知已有人直接匯款下訂，屋主拒絕租給我們。',
-    narrative: '一開始溝通時，仲介和房東都說不需要先匯訂金卡位，強調我們是首選人選，不用擔心房子被搶走，可以等看屋滿意後再決定要不要承租。到了實際看屋當天，我們認真檢查屋況，提出了幾個需要修繕的地方，包括牆面有壁癌、洗衣機放置處沒有地漏排水孔等問題。沒想到就在當天晚上，仲介通知我們有其他人直接匯款下訂金，屋主已經決定租給對方，我們就這樣被拒絕承租。前後態度轉變之快，讓人不禁懷疑「首選」的說法只是話術，一旦提出房屋的實際問題，馬上就被換掉。',
-    landlord591: '', helpfulCount: 7, dateLabel: '2026-08'
-  }
-];
-const exampleListEl = document.getElementById('exampleList');
-EXAMPLES.forEach(ex => exampleListEl.appendChild(buildCaseCard(ex.id, ex, true)));
 
 /* ---------------- init ---------------- */
 subscribe();

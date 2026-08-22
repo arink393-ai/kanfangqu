@@ -27,11 +27,30 @@ service cloud.firestore {
         && request.resource.data.tags.size() >= 1
         && request.resource.data.helpfulCount == 0;
 
-      allow update: if isSignedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['helpfulCount'])
-        && request.resource.data.helpfulCount == resource.data.helpfulCount + 1;
+      allow update: if isSignedIn() && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['helpfulCount'])
+          && request.resource.data.helpfulCount == resource.data.helpfulCount + 1)
+        ||
+        (resource.data.authorUid == request.auth.uid
+          && request.resource.data.authorUid == resource.data.authorUid
+          && request.resource.data.helpfulCount == resource.data.helpfulCount
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 40
+          && request.resource.data.narrative is string
+          && request.resource.data.narrative.size() > 0
+          && request.resource.data.narrative.size() <= 1500
+          && request.resource.data.summary is string
+          && request.resource.data.summary.size() <= 150
+          && request.resource.data.rating is int
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5
+          && request.resource.data.tags is list
+          && request.resource.data.tags.size() >= 1)
+      );
 
-      allow delete: if false;
+      allow delete: if isSignedIn() && resource.data.authorUid == request.auth.uid;
 
       match /private/contact {
         allow read: if isSignedIn()
