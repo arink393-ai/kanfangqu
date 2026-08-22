@@ -137,8 +137,10 @@ h1.brand{
   font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:99px;border:1px solid var(--line);
   background:var(--surface);color:var(--muted);cursor:pointer;user-select:none;
   transition:background .12s, color .12s, border-color .12s;
+  -webkit-tap-highlight-color:transparent;outline:none;
 }
-.chip.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.chip.active,.chip:active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 .chip-reset{font-size:12px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;padding:6px 4px;}
 
 main{padding-top:10px;}
@@ -238,8 +240,9 @@ main{padding-top:10px;}
 .chip-choice{display:flex;flex-wrap:wrap;gap:7px;}
 .chip-choice .chip{background:var(--surface);}
 .star-row{display:flex;gap:6px;}
-.star-btn{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);font-family:'Manrope',sans-serif;font-weight:700;font-size:15px;cursor:pointer;}
-.star-btn.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.star-btn{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);font-family:'Manrope',sans-serif;font-weight:700;font-size:15px;cursor:pointer;-webkit-tap-highlight-color:transparent;outline:none;}
+.star-btn.active,.star-btn:active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.star-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 .modal-actions{display:flex;gap:10px;margin-top:6px;position:sticky;bottom:0;background:var(--bg);padding-top:10px;}
 .btn-primary{flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:var(--radius-md);padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
 .btn-primary:disabled{background:var(--muted-2);cursor:not-allowed;}
