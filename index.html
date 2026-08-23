@@ -321,6 +321,31 @@ main{padding-top:10px;}
 
 footer.site{max-width:640px;margin:40px auto 0;padding:20px 16px 40px;border-top:1px solid var(--line);font-size:12px;color:var(--muted-2);text-align:center;}
 
+/* ===== Desktop layout: sidebar (rules/stats/filters) + main feed, editorial hero ===== */
+@media (min-width:960px){
+  header.site{padding:40px 24px 28px;}
+  header.site .inner{max-width:1100px;padding:0;}
+  h1.brand{font-size:32px;}
+  .tagline{
+    font-size:44px;font-weight:900;line-height:1.15;letter-spacing:-.015em;
+    max-width:16ch;margin:14px 0 16px;
+  }
+  .mission{font-size:16px;max-width:62ch;}
+
+  .page-grid{
+    display:grid;grid-template-columns:300px 1fr;gap:32px;align-items:start;
+    max-width:1100px;margin:0 auto;padding:0 24px;
+  }
+  .local-panel{padding:0;}
+  .local-panel .wrap{max-width:none;padding:0;position:sticky;top:24px;}
+  main.wrap{max-width:none;padding:0 0 60px;}
+
+  .stats-strip{flex-direction:column;}
+  .filter-bar select{width:100%;}
+
+  footer.site{max-width:1100px;}
+}
+
 @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
 </style>
 </head>
@@ -339,47 +364,49 @@ footer.site{max-width:640px;margin:40px auto 0;padding:20px 16px 40px;border-top
   </div>
 </header>
 
-<div class="local-panel">
-  <div class="wrap">
-    <div class="notice-tag">
-      <span class="stamp-label">使用須知</span>
-      <p>內容均為使用者個人陳述，未經第三方查證，請理性判斷、勿人身攻擊。發文請勿提供足以直接指認特定自然人的資訊（全名、身分證字號、清晰照片等）。物件地址一律只顯示到路段等級；房東／房仲在591上的公開聯絡方式，需登入並分享過故事後才能查看。</p>
-    </div>
+<div class="page-grid">
+  <div class="local-panel">
+    <div class="wrap">
+      <div class="notice-tag">
+        <span class="stamp-label">使用須知</span>
+        <p>內容均為使用者個人陳述，未經第三方查證，請理性判斷、勿人身攻擊。發文請勿提供足以直接指認特定自然人的資訊（全名、身分證字號、清晰照片等）。物件地址一律只顯示到路段等級；房東／房仲在591上的公開聯絡方式，需登入並分享過故事後才能查看。</p>
+      </div>
 
-    <div class="stats-strip">
-      <div class="stat-tile"><div class="num" id="statCount">–</div><div class="lbl">則分享案例</div></div>
-      <div class="stat-tile"><div class="num warn-num" id="statAvg">–</div><div class="lbl">平均誠信分數／5</div></div>
-    </div>
+      <div class="stats-strip">
+        <div class="stat-tile"><div class="num" id="statCount">–</div><div class="lbl">則分享案例</div></div>
+        <div class="stat-tile"><div class="num warn-num" id="statAvg">–</div><div class="lbl">平均誠信分數／5</div></div>
+      </div>
 
-    <div class="filter-bar" id="filterBar">
-      <select id="filterCity">
-        <option value="">全部地區</option>
-        <option value="台北市">台北市</option>
-        <option value="新北市">新北市</option>
-        <option value="桃園市">桃園市</option>
-        <option value="台中市">台中市</option>
-        <option value="台南市">台南市</option>
-        <option value="高雄市">高雄市</option>
-        <option value="其他縣市">其他縣市</option>
-      </select>
-      <button class="chip" data-tag-filter="口頭承諾但反悔">口頭承諾反悔</button>
-      <button class="chip" data-tag-filter="房子已出租卻仍刊登">早已出租仍刊登</button>
-      <button class="chip" data-tag-filter="收了斡旋/訂金卻不算數">訂金糾紛</button>
-      <button class="chip" data-tag-filter="隱瞞房屋瑕疵">隱瞞瑕疵</button>
-      <button class="chip" data-tag-filter="拖延/不處理修繕">拖延修繕</button>
-      <button class="chip" data-tag-filter="不退還訂金或押金">不退款</button>
-      <button class="chip" data-tag-filter="押金扣款不合理">扣押金爭議</button>
-      <button class="chip" data-tag-filter="提前解約違約金過高">違約金爭議</button>
-      <button class="chip-reset" id="btnResetFilter">清除篩選</button>
+      <div class="filter-bar" id="filterBar">
+        <select id="filterCity">
+          <option value="">全部地區</option>
+          <option value="台北市">台北市</option>
+          <option value="新北市">新北市</option>
+          <option value="桃園市">桃園市</option>
+          <option value="台中市">台中市</option>
+          <option value="台南市">台南市</option>
+          <option value="高雄市">高雄市</option>
+          <option value="其他縣市">其他縣市</option>
+        </select>
+        <button class="chip" data-tag-filter="口頭承諾但反悔">口頭承諾反悔</button>
+        <button class="chip" data-tag-filter="房子已出租卻仍刊登">早已出租仍刊登</button>
+        <button class="chip" data-tag-filter="收了斡旋/訂金卻不算數">訂金糾紛</button>
+        <button class="chip" data-tag-filter="隱瞞房屋瑕疵">隱瞞瑕疵</button>
+        <button class="chip" data-tag-filter="拖延/不處理修繕">拖延修繕</button>
+        <button class="chip" data-tag-filter="不退還訂金或押金">不退款</button>
+        <button class="chip" data-tag-filter="押金扣款不合理">扣押金爭議</button>
+        <button class="chip" data-tag-filter="提前解約違約金過高">違約金爭議</button>
+        <button class="chip-reset" id="btnResetFilter">清除篩選</button>
+      </div>
     </div>
   </div>
-</div>
 
-<main class="wrap">
-  <div class="section-label">全部分享</div>
-  <div id="postsList"></div>
-  <div id="emptyState" class="empty-state" style="display:none;">目前還沒有真實案例，成為第一個分享故事的人吧！</div>
-</main>
+  <main class="wrap">
+    <div class="section-label">全部分享</div>
+    <div id="postsList"></div>
+    <div id="emptyState" class="empty-state" style="display:none;">目前還沒有真實案例，成為第一個分享故事的人吧！</div>
+  </main>
+</div>
 
 <button class="fab" id="fabCompose"><span class="pin">＋</span> 分享故事</button>
 
