@@ -93,6 +93,11 @@ h1.brand{
   font-family:'Noto Sans TC',sans-serif;
 }
 .header-auth-logged{display:flex;align-items:center;gap:6px;}
+.header-admin-btn{
+  font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:700;flex-shrink:0;
+  background:var(--danger-soft);color:var(--danger);border:none;padding:6px 10px;border-radius:99px;
+  white-space:nowrap;cursor:pointer;-webkit-tap-highlight-color:transparent;outline:none;
+}
 .header-points{
   font-family:'Manrope',sans-serif;font-size:12px;font-weight:800;flex-shrink:0;
   background:var(--warn-soft);color:var(--warn);padding:4px 9px;border-radius:99px;white-space:nowrap;
@@ -318,6 +323,23 @@ main{padding-top:10px;}
 }
 .login-inline button{margin-top:10px;}
 
+.admin-pending-item{
+  border:1px solid var(--line);border-radius:var(--radius-md);padding:14px;margin-bottom:12px;background:var(--surface);
+}
+.admin-pending-email{
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);margin-bottom:6px;word-break:break-all;
+}
+.admin-pending-title{font-weight:700;font-size:15px;margin-bottom:4px;}
+.admin-pending-summary{font-size:13px;color:var(--muted);margin:0 0 10px;white-space:pre-wrap;}
+.admin-pending-actions{display:flex;gap:8px;}
+.btn-admin-approve,.btn-admin-reject{
+  font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:99px;border:none;cursor:pointer;
+  font-family:'Noto Sans TC',sans-serif;-webkit-tap-highlight-color:transparent;outline:none;
+}
+.btn-admin-approve{background:var(--good-soft);color:var(--good);}
+.btn-admin-reject{background:var(--danger-soft);color:var(--danger);}
+.btn-admin-approve:disabled{opacity:.6;cursor:not-allowed;}
+
 .toast{
   position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
   background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:99px;font-size:13px;font-weight:600;
@@ -429,8 +451,8 @@ import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc, deleteDoc,
-  onSnapshot, query, orderBy, limit, serverTimestamp, runTransaction
+  getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
+  onSnapshot, query, where, orderBy, limit, serverTimestamp, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* =========================================================================
@@ -461,6 +483,7 @@ const TAG_GROUPS = [
 ];
 const TAG_OPTIONS = TAG_GROUPS.flatMap(g => g.tags);
 const CITY_OPTIONS = ["台北市","新北市","桃園市","台中市","台南市","高雄市","其他縣市"];
+const ADMIN_UID = 'ebmh4RoFBAdoVEhCe51qoWYUzIq2';
 
 const postsListEl = document.getElementById('postsList');
 const emptyStateEl = document.getElementById('emptyState');
@@ -518,13 +541,16 @@ function joinLandlord591(url, note){
 const authBar = document.getElementById('authBar');
 function renderAuthBar(){
   if(currentUser){
+    const isAdmin = currentUser.uid === ADMIN_UID;
     authBar.innerHTML = `
       <div class="header-auth-logged">
+        ${isAdmin ? `<button class="header-admin-btn" id="btnAdminPanel">🛡️ 後台</button>` : ''}
         <span class="header-points" title="積分可用來解鎖別人故事的591資訊，分享故事可獲得積分">💰${currentPoints}</span>
         <img class="header-avatar" src="${escapeHtml(currentUser.photoURL||'')}" title="${escapeHtml(currentUser.displayName||currentUser.email||'已登入')}" onerror="this.style.visibility='hidden'">
         <button class="header-logout" id="btnLogout">登出</button>
       </div>`;
     document.getElementById('btnLogout').addEventListener('click', () => signOut(auth));
+    if(isAdmin) document.getElementById('btnAdminPanel').addEventListener('click', openAdminPanel);
   } else {
     authBar.innerHTML = `<button class="header-login-btn" id="btnLogin">登入</button>`;
     document.getElementById('btnLogin').addEventListener('click', handleLogin);
@@ -560,7 +586,7 @@ onAuthStateChanged(auth, async (user) => {
 
 /* ---------------- live posts feed ---------------- */
 function subscribe(){
-  const q = query(collection(db,'posts'), orderBy('createdAt','desc'), limit(200));
+  const q = query(collection(db,'posts'), where('status','==','approved'), orderBy('createdAt','desc'), limit(200));
   onSnapshot(q, snap => {
     allDocs = snap.docs.map(docSnap => ({ id: docSnap.id, data: docSnap.data() }));
     statCountEl.textContent = allDocs.length;
@@ -600,6 +626,7 @@ function buildCaseCard(id, d){
   art.className = 'case-card';
   const caseTag = '#' + id.slice(0,6).toUpperCase();
   const isOwner = !!(currentUser && currentUser.uid === d.authorUid);
+  const isAdmin = !!(currentUser && currentUser.uid === ADMIN_UID);
 
   const ratingNum = Number(d.rating) || 0;
   const badgeClass = ratingNum ? (ratingNum <= 2 ? '' : (ratingNum === 3 ? ' r-mid' : ' r-good')) : '';
@@ -623,9 +650,9 @@ function buildCaseCard(id, d){
     <div class="field-label">房東／房仲591聯絡資訊</div>
     <div class="landlord591-value" id="v591-${id}"></div>
     <button class="landlord591-locked" id="l591-${id}" type="button">🔒 <span>解鎖591聯絡資訊（-100積分）</span></button>
-    ${isOwner ? `<div class="owner-actions">
-      <button class="btn-edit" data-action="edit" data-id="${id}">✏️ 編輯</button>
-      <button class="btn-delete" data-action="delete" data-id="${id}">🗑️ 刪除</button>
+    ${(isOwner || isAdmin) ? `<div class="owner-actions">
+      ${isOwner ? `<button class="btn-edit" data-action="edit" data-id="${id}">✏️ 編輯</button>` : ''}
+      <button class="btn-delete" data-action="delete" data-id="${id}">🗑️ 刪除${isAdmin && !isOwner ? '（管理員）' : ''}</button>
     </div>` : ''}
     <div class="card-footer">
       <button class="btn-helpful" data-action="helpful" data-id="${id}">🙋 我也遇到類似狀況 <span class="help-count">${Number(d.helpfulCount)||0}</span></button>
@@ -655,6 +682,8 @@ function buildCaseCard(id, d){
   art.querySelector('#ctoggle-'+CSS.escape(id)).addEventListener('click', () => toggleComments(id, art, d.authorUid));
   if(isOwner){
     art.querySelector('.btn-edit').addEventListener('click', () => startEditPost(id));
+  }
+  if(isOwner || isAdmin){
     art.querySelector('.btn-delete').addEventListener('click', () => deletePostFlow(id));
   }
   return art;
@@ -1040,7 +1069,7 @@ function openComposeModal(prefill, editId){
         await submitPost(draft);
         clearDraftFromStorage(dKey);
         closeComposeModal();
-        showToast('故事已發佈，謝謝分享！591資訊已為你解鎖');
+        showToast('故事已送出，審核通過後會公開顯示（通過後可獲得100積分）');
       }
     }catch(e){
       console.error(e);
@@ -1071,15 +1100,23 @@ async function submitPost(draft){
     helpfulCount: 0,
     dateLabel,
     authorUid: currentUser.uid,
+    status: 'pending',
     createdAt: serverTimestamp()
+  });
+  await setDoc(doc(db,'posts',postRef.id,'private','author'), {
+    email: currentUser.email || ''
   });
   if(draft.landlord591){
     await setDoc(doc(db,'posts',postRef.id,'private','contact'), {
       landlord591: draft.landlord591
     });
   }
+}
+
+async function approvePostAndAwardPoints(id, authorUid){
+  await updateDoc(doc(db,'posts',id), { status: 'approved' });
   await runTransaction(db, async (tx) => {
-    const userRef = doc(db,'users',currentUser.uid);
+    const userRef = doc(db,'users',authorUid);
     const userSnap = await tx.get(userRef);
     const pts = Number(userSnap.exists() ? userSnap.data().points : 0) || 0;
     tx.set(userRef, { points: pts + 100 }, { merge: true });
@@ -1127,11 +1164,100 @@ async function deletePostFlow(id){
   if(!confirm('確定要刪除這則故事嗎？此動作無法復原。')) return;
   try{
     try{ await deleteDoc(doc(db,'posts',id,'private','contact')); }catch(e){}
+    try{ await deleteDoc(doc(db,'posts',id,'private','author')); }catch(e){}
     await deleteDoc(doc(db,'posts',id));
     showToast('已刪除故事');
   }catch(e){
     console.error(e);
     showToast('刪除失敗，請稍後再試');
+  }
+}
+
+/* ---------------- admin panel ---------------- */
+async function openAdminPanel(){
+  closeAdminPanel();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.id = 'adminBackdrop';
+  const sheet = document.createElement('div');
+  sheet.className = 'modal-sheet';
+  sheet.innerHTML = `
+    <h2>🛡️ 待審核故事</h2>
+    <p class="modal-sub">核准後才會公開顯示在動態牆上，並會發放100積分給作者</p>
+    <div id="adminPendingList"><p class="comment-empty">載入中…</p></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btnAdminClose">關閉</button>
+    </div>`;
+  backdrop.appendChild(sheet);
+  document.body.appendChild(backdrop);
+  sheet.querySelector('#btnAdminClose').addEventListener('click', closeAdminPanel);
+  backdrop.addEventListener('click', e => { if(e.target === backdrop) closeAdminPanel(); });
+  await loadAdminPendingList(sheet);
+}
+function closeAdminPanel(){
+  const el = document.getElementById('adminBackdrop');
+  if(el) el.remove();
+}
+
+async function loadAdminPendingList(sheet){
+  const listEl = sheet.querySelector('#adminPendingList');
+  try{
+    const q = query(collection(db,'posts'), where('status','==','pending'), orderBy('createdAt','desc'));
+    const snap = await getDocs(q);
+    if(snap.empty){
+      listEl.innerHTML = '<p class="comment-empty">目前沒有待審核的故事。</p>';
+      return;
+    }
+    listEl.innerHTML = '';
+    for(const docSnap of snap.docs){
+      const id = docSnap.id;
+      const d = docSnap.data();
+      let email = '（未提供）';
+      try{
+        const authorSnap = await getDoc(doc(db,'posts',id,'private','author'));
+        if(authorSnap.exists() && authorSnap.data().email) email = authorSnap.data().email;
+      }catch(e){}
+
+      const item = document.createElement('div');
+      item.className = 'admin-pending-item';
+      item.innerHTML = `
+        <div class="admin-pending-email">✉️ ${escapeHtml(email)}</div>
+        <div class="admin-pending-title">${escapeHtml(d.title||'（未命名故事）')}</div>
+        <p class="admin-pending-summary">${escapeHtml(d.summary||'')}</p>
+        <div class="admin-pending-actions">
+          <button type="button" class="btn-admin-approve">✅ 核准</button>
+          <button type="button" class="btn-admin-reject">🗑️ 刪除</button>
+        </div>`;
+      item.querySelector('.btn-admin-approve').addEventListener('click', async (e) => {
+        e.target.disabled = true;
+        try{
+          await approvePostAndAwardPoints(id, d.authorUid);
+          showToast('已核准故事並發放積分');
+          item.remove();
+        }catch(err){
+          console.error(err);
+          showToast('核准失敗，請稍後再試');
+          e.target.disabled = false;
+        }
+      });
+      item.querySelector('.btn-admin-reject').addEventListener('click', async () => {
+        if(!confirm('確定要刪除這則待審核故事嗎？')) return;
+        try{
+          try{ await deleteDoc(doc(db,'posts',id,'private','contact')); }catch(err){}
+          try{ await deleteDoc(doc(db,'posts',id,'private','author')); }catch(err){}
+          await deleteDoc(doc(db,'posts',id));
+          showToast('已刪除故事');
+          item.remove();
+        }catch(err){
+          console.error(err);
+          showToast('刪除失敗，請稍後再試');
+        }
+      });
+      listEl.appendChild(item);
+    }
+  }catch(e){
+    console.error(e);
+    listEl.innerHTML = '<p class="comment-empty">讀取失敗，請稍後再試。</p>';
   }
 }
 
