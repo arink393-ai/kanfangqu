@@ -295,6 +295,15 @@ main{padding-top:10px;}
 .url-paste-row{display:flex;gap:8px;}
 .parse591-row{margin-top:8px;}
 .parse591-row .btn-paste{width:100%;padding:10px;}
+.parse591-row .btn-paste:disabled{opacity:.6;cursor:not-allowed;}
+.parse591-fallback summary{
+  font-size:12.5px;color:var(--accent);cursor:pointer;margin-bottom:8px;
+  -webkit-tap-highlight-color:transparent;
+}
+.parse591-fallback textarea{
+  width:100%;font-family:'Noto Sans TC',sans-serif;font-size:13.5px;padding:10px 12px;min-height:90px;
+  border:1.5px solid var(--line);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);resize:vertical;
+}
 .url-paste-row input{flex:1;min-width:0;}
 .btn-paste{
   flex-shrink:0;background:var(--surface-2);border:1.5px solid var(--line);color:var(--ink);
@@ -539,51 +548,91 @@ function joinLandlord591(url, note){
   return [String(url||'').trim(), String(note||'').trim()].filter(Boolean).join('\n');
 }
 
-/* ---------------- parse pasted 591 page text ---------------- */
+/* ---------------- 591 listing parsing ----------------
+   591 沒有提供 CORS 標頭，瀏覽器不能直接抓它的頁面，所以「貼網址自動抓取」
+   要透過 r.jina.ai 這個公開的純文字代理轉一手（只送出公開的物件網址）。
+   代理若失聯，使用者仍可自己複製整頁文字貼進來，走同一套解析規則。      */
+const JINA_PROXY = 'https://r.jina.ai/';
+
 function roadFromAddressText(addr, cityHit){
   let s = String(addr||'');
   if(cityHit){
     s = s.split(cityHit).pop();
     s = s.split(cityHit.replace(/台/g,'臺')).pop();
   }
-  s = s.replace(/^[一-龥]{1,4}(區|鎮|鄉)/, '');
+  s = s.replace(/^[一-龥]{1,4}(區|鎮|鄉|市)/, '');
   const m = s.match(/([一-龥]{1,8}(?:路|街|大道))(?:\s*([一二兩三四五六七八九十]+段|\d+段))?/);
   return m ? (m[1]+(m[2]||'')) : '';
 }
+
 function parse591Text(text){
   const raw = String(text||'');
-  const flat = raw.replace(/\s+/g,' ');
+  const flat = raw.replace(/[ \t]+/g,' ');
   const result = {};
 
   const urlMatch = raw.match(/https?:\/\/rent\.591\.com\.tw\/\d+/);
   if(urlMatch) result.url = urlMatch[0];
 
-  const addrMatch = flat.match(/地址\s*[:：]\s*([^\s]+)/);
-  if(addrMatch){
-    const addrNorm = addrMatch[1].replace(/臺/g,'台');
-    const cityHit = CITY_OPTIONS.find(c => c !== '其他縣市' && addrNorm.includes(c));
-    if(cityHit) result.city = cityHit;
-    result.road = roadFromAddressText(addrMatch[1], cityHit);
+  const cityHit = CITY_OPTIONS.find(c => c !== '其他縣市' &&
+    (raw.includes(c) || raw.includes(c.replace(/台/g,'臺'))));
+  if(cityHit) result.city = cityHit;
+
+  /* 591 的地址欄可能是「地 址:」換行後接內容，也可能同一行。 */
+  let addrText = '';
+  const addrM = flat.match(/地\s*址\s*[:：]\s*\n*\s*([^\n]{2,60})/);
+  if(addrM) addrText = addrM[1].trim();
+  if(!addrText){
+    const inline = flat.match(/地\s*址\s*[:：]\s*([^\s]{2,60})/);
+    if(inline) addrText = inline[1];
+  }
+  if(addrText){
+    /* 行政區只從地址取 — 頁面導覽列有「專區」之類的字會誤判。 */
+    const dm = addrText.replace(/臺/g,'台').replace(cityHit||'', '').match(/^([一-龥]{1,3}[區鎮鄉市])/);
+    if(dm) result.district = dm[1];
+    result.road = roadFromAddressText(addrText, cityHit);
   }
 
-  let name = null, role = null;
-  const ownerMatch = flat.match(/屋主\s*[:：]\s*([^\s(（]{1,10})/);
-  if(ownerMatch){ name = ownerMatch[1]; role = '房東本人'; }
-  if(!name){
-    const contactMatch = flat.match(/聯絡人\s*[:：]\s*([^\s(（]{1,10})/);
-    if(contactMatch) name = contactMatch[1];
-  }
-  if(name && !role){
-    if(/包租代管/.test(flat)) role = '包租代管';
-    else if(/代理人/.test(flat)) role = '代理人';
-    else if(/仲介|房仲/.test(flat)) role = '房仲';
-  }
-  if(name) result.contactLine = role ? `${name}（${role}）` : name;
+  const roleMap = { '屋主':'房東本人', '房東':'房東本人', '仲介':'房仲',
+                    '代理人':'代理人', '包租代管':'包租代管' };
+  const cm = flat.match(/(屋主|房東|仲介|代理人|包租代管)\s*[:：]\s*([^\s(（\n]{1,10})/);
+  if(cm) result.contactLine = `${cm[2]}（${roleMap[cm[1]] || cm[1]}）`;
+
+  const company = flat.match(/經紀業\s*[:：]\s*([^\n]{2,40})/);
+  if(company) result.company = company[1].trim();
 
   const phoneMatch = raw.match(/09\d{2}[-\s]?\d{3}[-\s]?\d{3}/);
   if(phoneMatch) result.phone = phoneMatch[0];
 
   return result;
+}
+
+async function fetch591ByUrl(url){
+  const resp = await fetch(JINA_PROXY + url, { headers: { 'Accept': 'text/plain' } });
+  if(!resp.ok) throw new Error('proxy responded ' + resp.status);
+  const text = await resp.text();
+  const parsed = parse591Text(text);
+  if(!parsed.url) parsed.url = url;
+  return parsed;
+}
+
+/* 把解析結果填進發文表單，回傳實際填到的欄位名稱。 */
+function applyParsed591(sheet, r){
+  const found = [];
+  if(r.url){ sheet.querySelector('#fUrl591').value = r.url; found.push('網址'); }
+  if(r.city){ sheet.querySelector('#fCity').value = r.city; found.push('縣市'); }
+  if(r.district){ sheet.querySelector('#fDistrict').value = r.district; found.push('地區'); }
+  if(r.road){ sheet.querySelector('#fRoad').value = r.road; found.push('路段'); }
+  const parts = [];
+  if(r.contactLine) parts.push('聯絡人：'+r.contactLine);
+  if(r.company) parts.push('經紀業：'+r.company);
+  if(r.phone) parts.push('電話：'+r.phone);
+  if(parts.length){
+    const noteEl = sheet.querySelector('#fContactNote');
+    const existing = noteEl.value.trim();
+    noteEl.value = existing ? existing+'\n'+parts.join('\n') : parts.join('\n');
+    found.push('聯絡資訊');
+  }
+  return found;
 }
 
 /* ---------------- auth ---------------- */
@@ -976,19 +1025,23 @@ function openComposeModal(prefill, editId){
     <div class="f-group"><label class="f-label">完整看房與談判過程</label>
       <textarea id="fNarrative" maxlength="1500" style="min-height:140px" placeholder="說說事情的來龍去脈..."></textarea>
     </div>
-    <div class="f-group"><label class="f-label">貼上591頁面文字（選填，自動解析聯絡人／地址）</label>
-      <textarea id="fParse591" maxlength="4000" placeholder="到591物件頁面上全選（Ctrl/Cmd+A）複製整頁文字，貼在這裡…"></textarea>
-      <div class="parse591-row">
-        <button type="button" class="btn-paste" id="btnParse591">🔍 解析並帶入下方欄位</button>
-      </div>
-      <p class="f-hint">591 有防爬蟲機制，沒辦法只貼網址就自動抓取，需要你先把頁面文字複製貼上這裡再解析。</p>
-    </div>
     <div class="f-group"><label class="f-label">591 物件網址（選填）</label>
       <div class="url-paste-row">
-        <input type="url" id="fUrl591" maxlength="300" placeholder="貼上591或其他刊登平台的網址">
+        <input type="url" id="fUrl591" maxlength="300" placeholder="貼上591物件網址，例：https://rent.591.com.tw/12345678">
         <button type="button" class="btn-paste" id="btnPasteUrl">📋 貼上</button>
       </div>
+      <div class="parse591-row">
+        <button type="button" class="btn-paste" id="btnFetch591">🔍 從網址自動抓取聯絡人／地址</button>
+      </div>
+      <p class="f-hint">會自動帶入聯絡人姓名與身分、電話、縣市與路段（地址只取到路段，不含門牌）。抓取時會把這個公開的物件網址送到 r.jina.ai 讀取頁面。</p>
     </div>
+    <details class="f-group parse591-fallback">
+      <summary>自動抓取失敗？改用貼上頁面文字</summary>
+      <textarea id="fParse591" maxlength="8000" placeholder="到591物件頁面上全選（Ctrl/Cmd+A）複製整頁文字，貼在這裡…"></textarea>
+      <div class="parse591-row">
+        <button type="button" class="btn-paste" id="btnParse591">🔍 解析貼上的文字</button>
+      </div>
+    </details>
     <div class="f-group"><label class="f-label">其他聯絡資訊（姓名／電話／備註，選填）</label>
       <textarea id="fContactNote" maxlength="300" placeholder="例：陳先生（房東本人）、房仲公司名稱與業務電話"></textarea>
       <p class="f-hint">這是房東／房仲自己在591上公開刊登的資訊。此欄位只有「登入且已分享過故事」的使用者才看得到；仍建議避免貼上完整門牌或個人手機以外的私人資訊。</p>
@@ -1090,23 +1143,30 @@ function openComposeModal(prefill, editId){
     }
   });
 
+  sheet.querySelector('#btnFetch591').addEventListener('click', async () => {
+    const btn = sheet.querySelector('#btnFetch591');
+    const url = sheet.querySelector('#fUrl591').value.trim();
+    if(!url){ showToast('請先貼上591物件網址'); return; }
+    if(!/^https?:\/\//i.test(url)){ showToast('網址格式看起來不正確'); return; }
+    btn.disabled = true;
+    btn.textContent = '抓取中…';
+    try{
+      const r = await fetch591ByUrl(url);
+      const found = applyParsed591(sheet, r);
+      scheduleAutosave();
+      showToast(found.length ? '已帶入：'+found.join('、') : '抓不到可用資訊，請改用下方貼上頁面文字');
+    }catch(e){
+      console.error(e);
+      showToast('自動抓取失敗，請改用下方「貼上頁面文字」');
+    }
+    btn.disabled = false;
+    btn.textContent = '🔍 從網址自動抓取聯絡人／地址';
+  });
+
   sheet.querySelector('#btnParse591').addEventListener('click', () => {
     const raw = sheet.querySelector('#fParse591').value;
     if(!raw.trim()){ showToast('請先貼上591頁面文字'); return; }
-    const r = parse591Text(raw);
-    const found = [];
-    if(r.url){ sheet.querySelector('#fUrl591').value = r.url; found.push('網址'); }
-    if(r.city){ sheet.querySelector('#fCity').value = r.city; found.push('縣市'); }
-    if(r.road){ sheet.querySelector('#fRoad').value = r.road; found.push('路段'); }
-    if(r.contactLine || r.phone){
-      const noteEl = sheet.querySelector('#fContactNote');
-      const parts = [];
-      if(r.contactLine) parts.push('聯絡人：'+r.contactLine);
-      if(r.phone) parts.push('電話：'+r.phone);
-      const existing = noteEl.value.trim();
-      noteEl.value = existing ? existing+'\n'+parts.join('\n') : parts.join('\n');
-      found.push('聯絡人資訊');
-    }
+    const found = applyParsed591(sheet, parse591Text(raw));
     scheduleAutosave();
     showToast(found.length ? '已解析並帶入：'+found.join('、') : '沒有解析到可用的資訊，請手動輸入');
   });
