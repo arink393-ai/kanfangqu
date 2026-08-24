@@ -286,6 +286,11 @@ main{padding-top:10px;}
 .f-row .f-group{flex:1;min-width:0;}
 .f-label{font-family:'Manrope',sans-serif;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;display:block;}
 .f-hint{font-size:11.5px;color:var(--muted);margin-top:5px;}
+.f-hint-warn{
+  background:var(--warn-soft);border-left:3px solid var(--warn);
+  padding:9px 11px;border-radius:var(--radius-sm);line-height:1.65;
+}
+.f-hint-warn a{color:var(--accent);}
 .f-group input[type=text],.f-group input[type=url],.f-group textarea,.f-group select{
   width:100%;font-family:'Noto Sans TC',sans-serif;font-size:14.5px;padding:11px 13px;
   border:1.5px solid var(--line);border-radius:var(--radius-md);background:var(--surface);color:var(--ink);resize:vertical;
@@ -359,7 +364,10 @@ main{padding-top:10px;}
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-footer.site{max-width:640px;margin:40px auto 0;padding:20px 16px 40px;border-top:1px solid var(--line);font-size:12px;color:var(--muted-2);text-align:center;}
+footer.site{max-width:640px;margin:40px auto 0;padding:20px 16px 40px;border-top:1px solid var(--line);font-size:12px;color:var(--muted-2);text-align:center;line-height:1.7;}
+footer.site p{margin:0 0 6px;}
+footer.site .footer-links{margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+footer.site .footer-links a{color:var(--accent);text-decoration:none;font-weight:600;}
 
 /* ===== Desktop layout: sidebar (rules/stats/filters) + main feed, editorial hero ===== */
 @media (min-width:960px){
@@ -409,7 +417,7 @@ footer.site{max-width:640px;margin:40px auto 0;padding:20px 16px 40px;border-top
     <div class="wrap">
       <div class="notice-tag">
         <span class="stamp-label">使用須知</span>
-        <p>內容均為使用者個人陳述，未經第三方查證，請理性判斷、勿人身攻擊。發文請勿提供足以直接指認特定自然人的資訊（全名、身分證字號、清晰照片等）。物件地址一律只顯示到路段等級；房東／房仲在591上的公開聯絡方式，需登入並分享過故事後才能查看。</p>
+        <p>內容均為使用者個人陳述，<strong>未經本平台查證，不代表平台立場</strong>，請理性判斷、勿人身攻擊；發文者需自負法律責任。請只分享親身經歷、具體描述事實，勿散布未經證實的消息。發文請勿提供身分證字號、完整門牌、清晰人臉照片等資訊；物件地址一律只顯示到路段等級。詳見<a href="terms.html">服務條款與免責聲明</a>。</p>
       </div>
 
       <div class="stats-strip">
@@ -451,7 +459,13 @@ footer.site{max-width:640px;margin:40px auto 0;padding:20px 16px 40px;border-top
 <button class="fab" id="fabCompose"><span class="pin">＋</span> 分享故事</button>
 
 <footer class="site">
-  看房趣・一個記錄看房與議價心得的匿名社群。內容由使用者自行提供，不代表平台立場或事實查證。
+  <p>看房趣・一個記錄看房與議價心得的匿名社群。</p>
+  <p>內容均由使用者自行提供，未經本平台查證，<strong>不代表平台立場</strong>；發文者需自負法律責任。</p>
+  <p class="footer-links">
+    <a href="terms.html">服務條款與免責聲明</a>
+    <span aria-hidden="true">·</span>
+    <a href="terms.html#檢舉">檢舉不實內容</a>
+  </p>
 </footer>
 
 <script type="module">
@@ -1067,7 +1081,7 @@ function openComposeModal(prefill, editId){
     </details>
     <div class="f-group"><label class="f-label">其他聯絡資訊（姓名／電話／備註，選填）</label>
       <textarea id="fContactNote" maxlength="300" placeholder="例：陳先生（房東本人）、房仲公司名稱與業務電話"></textarea>
-      <p class="f-hint">這是房東／房仲自己在591上公開刊登的資訊。此欄位只有「登入且已分享過故事」的使用者才看得到；仍建議避免貼上完整門牌或個人手機以外的私人資訊。</p>
+      <p class="f-hint f-hint-warn">⚠️ 即使是對方公開刊登的資訊，轉載到本站仍可能涉及《個人資料保護法》，並非「公開就一定能轉貼」。此欄位為選填，建議<strong>優先用「房東」「仲介」等代稱</strong>，避免填寫手機號碼。填寫即表示你已自行評估並願承擔法律責任（<a href="terms.html" target="_blank">詳見條款</a>）。</p>
     </div>
     <p class="f-error" id="fError">請填寫標題、至少一個事件類型、誠信評分與完整過程後再發佈。</p>
     <div class="modal-actions">
