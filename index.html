@@ -606,6 +606,29 @@ function parse591Text(text){
   return result;
 }
 
+/* 使用者可能直接貼 APP 的分享文字（標題＋網址），也可能貼手機版或舊版網址。
+   一律抽出物件編號，轉成桌機版網址 — 只有這個格式 591 會回完整內容。 */
+function normalize591Url(input){
+  const s = String(input||'').trim();
+  if(!s) return '';
+  let url = '';
+  let m = s.match(/https?:\/\/[^\s，。、；「」（）()]+/);
+  if(m) url = m[0];
+  if(!url){
+    m = s.match(/(?:[\w-]+\.)*591\.com\.tw\/[^\s，。、；「」（）()]*/);
+    if(m) url = 'https://' + m[0];
+  }
+  if(!url) return '';
+  if(/591\.com\.tw/i.test(url)){
+    const id = (url.match(/rent-detail-(\d+)/) ||
+                url.match(/\/detail\/\d+\/(\d+)/) ||
+                url.match(/591\.com\.tw\/(\d{5,})/) ||
+                url.match(/[?&]houseId=(\d+)/) || [])[1];
+    if(id) return 'https://rent.591.com.tw/' + id;
+  }
+  return url;
+}
+
 async function fetch591ByUrl(url){
   const resp = await fetch(JINA_PROXY + url, { headers: { 'Accept': 'text/plain' } });
   if(!resp.ok) throw new Error('proxy responded ' + resp.status);
@@ -1027,13 +1050,13 @@ function openComposeModal(prefill, editId){
     </div>
     <div class="f-group"><label class="f-label">591 物件網址（選填）</label>
       <div class="url-paste-row">
-        <input type="url" id="fUrl591" maxlength="300" placeholder="貼上591物件網址，例：https://rent.591.com.tw/12345678">
+        <input type="text" id="fUrl591" maxlength="300" placeholder="貼上591網址，或APP分享的整段文字">
         <button type="button" class="btn-paste" id="btnPasteUrl">📋 貼上</button>
       </div>
       <div class="parse591-row">
         <button type="button" class="btn-paste" id="btnFetch591">🔍 從網址自動抓取聯絡人／地址</button>
       </div>
-      <p class="f-hint">會自動帶入聯絡人姓名與身分、電話、縣市與路段（地址只取到路段，不含門牌）。抓取時會把這個公開的物件網址送到 r.jina.ai 讀取頁面。</p>
+      <p class="f-hint">支援桌機版、手機版與APP分享的網址（直接貼整段分享文字也可以）。會自動帶入聯絡人姓名與身分、電話、縣市與路段（地址只取到路段，不含門牌）。抓取時會把這個公開的物件網址送到 r.jina.ai 讀取頁面。</p>
     </div>
     <details class="f-group parse591-fallback">
       <summary>自動抓取失敗？改用貼上頁面文字</summary>
@@ -1145,9 +1168,9 @@ function openComposeModal(prefill, editId){
 
   sheet.querySelector('#btnFetch591').addEventListener('click', async () => {
     const btn = sheet.querySelector('#btnFetch591');
-    const url = sheet.querySelector('#fUrl591').value.trim();
-    if(!url){ showToast('請先貼上591物件網址'); return; }
-    if(!/^https?:\/\//i.test(url)){ showToast('網址格式看起來不正確'); return; }
+    const url = normalize591Url(sheet.querySelector('#fUrl591').value);
+    if(!url){ showToast('請先貼上591物件網址（也可以直接貼APP分享的整段文字）'); return; }
+    sheet.querySelector('#fUrl591').value = url;
     btn.disabled = true;
     btn.textContent = '抓取中…';
     try{
