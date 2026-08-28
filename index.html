@@ -394,6 +394,27 @@ footer.site .footer-links a{color:var(--accent);text-decoration:none;font-weight
   footer.site{max-width:1100px;}
 }
 
+.inapp-banner{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;
+  background:var(--warn-soft);border-top:1px solid var(--warn);
+  padding:11px 14px calc(11px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink);
+}
+.inapp-banner span{flex:1;line-height:1.5;}
+.inapp-banner button{
+  -webkit-appearance:none;appearance:none;flex-shrink:0;
+  background:var(--warn);color:#fff;border:none;border-radius:99px;
+  padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;
+  font-family:'Noto Sans TC',sans-serif;-webkit-tap-highlight-color:transparent;
+}
+.inapp-steps{
+  background:var(--surface-2);border-radius:var(--radius-md);
+  padding:12px 14px;margin-bottom:14px;font-size:13.5px;line-height:1.7;
+}
+.inapp-steps p{margin:0 0 6px;}
+.inapp-steps ol{margin:0;padding-left:20px;}
+.inapp-steps li{margin-bottom:5px;}
+
 @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
 </style>
 </head>
@@ -473,7 +494,8 @@ import {
   initializeApp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
+  signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
@@ -691,11 +713,101 @@ function renderAuthBar(){
     document.getElementById('btnLogin').addEventListener('click', handleLogin);
   }
 }
+/* ---------------- in-app browser handling ----------------
+   Google 會擋掉從 App 內建瀏覽器（LINE、FB、IG…）發起的 OAuth 登入，
+   回 disallowed_useragent；而且這些 WebView 也多半擋 popup。
+   在這種環境下不要硬送登入 — 直接引導使用者改用系統瀏覽器開啟。     */
+function detectInAppBrowser(){
+  const ua = navigator.userAgent || '';
+  if(/\bLine\//i.test(ua)) return 'LINE';
+  if(/FBAN|FBAV|FB_IAB/i.test(ua)) return 'Facebook';
+  if(/Instagram/i.test(ua)) return 'Instagram';
+  if(/\bMicroMessenger\b/i.test(ua)) return '微信';
+  if(/; wv\)/i.test(ua)) return 'App 內建瀏覽器';
+  return null;
+}
+
+function externalBrowserUrl(){
+  const u = new URL(location.href);
+  /* LINE 認得這個參數，會改用系統瀏覽器開啟 */
+  u.searchParams.set('openExternalBrowser', '1');
+  return u.toString();
+}
+
+function openInExternalBrowser(){
+  const app = detectInAppBrowser();
+  if(app === 'LINE'){
+    location.href = externalBrowserUrl();
+    return true;
+  }
+  return false;
+}
+
+function showInAppBrowserHelp(){
+  const app = detectInAppBrowser() || 'App 內建瀏覽器';
+  closeInAppBrowserHelp();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.id = 'inAppBackdrop';
+  const sheet = document.createElement('div');
+  sheet.className = 'modal-sheet';
+  const isLine = app === 'LINE';
+  sheet.innerHTML = `
+    <h2>請用瀏覽器開啟才能登入</h2>
+    <p class="modal-sub">你目前是從「${escapeHtml(app)}」的內建瀏覽器開啟這個網站。Google 基於安全考量，不允許在 App 內建瀏覽器登入，所以會出現空白或登入失敗。</p>
+    ${isLine ? `<button type="button" class="btn-primary" id="btnOpenExternal" style="width:100%;margin-bottom:14px;">用系統瀏覽器開啟</button>` : ''}
+    <div class="inapp-steps">
+      <p><strong>或手動操作：</strong></p>
+      <ol>
+        <li>點畫面<strong>右上角（或右下角）的「⋯」</strong>選單</li>
+        <li>選擇<strong>「用其他瀏覽器開啟」</strong>或<strong>「在 Safari 中開啟」</strong></li>
+        <li>在 Safari／Chrome 中就能正常登入了</li>
+      </ol>
+    </div>
+    <button type="button" class="btn-secondary" id="btnCopyLink" style="width:100%;margin-bottom:10px;">📋 複製網址</button>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btnInAppClose">關閉</button>
+    </div>`;
+  backdrop.appendChild(sheet);
+  document.body.appendChild(backdrop);
+  sheet.querySelector('#btnInAppClose').addEventListener('click', closeInAppBrowserHelp);
+  backdrop.addEventListener('click', e => { if(e.target === backdrop) closeInAppBrowserHelp(); });
+  const ext = sheet.querySelector('#btnOpenExternal');
+  if(ext) ext.addEventListener('click', () => { openInExternalBrowser(); });
+  sheet.querySelector('#btnCopyLink').addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(location.href.split('?')[0]);
+      showToast('已複製網址，貼到 Safari 開啟即可登入');
+    }catch(e){
+      showToast('複製失敗，請手動複製網址列');
+    }
+  });
+}
+function closeInAppBrowserHelp(){
+  const el = document.getElementById('inAppBackdrop');
+  if(el) el.remove();
+}
+
 async function handleLogin(){
+  if(detectInAppBrowser()){
+    showInAppBrowserHelp();
+    return;
+  }
   try{
     await signInWithPopup(auth, provider);
   }catch(e){
-    showToast('登入失敗，請再試一次');
+    const code = e && e.code || '';
+    /* 手機版 Safari 常擋 popup；改用整頁轉址重試。 */
+    if(code === 'auth/popup-blocked' || code === 'auth/popup-closed-by-user' ||
+       code === 'auth/cancelled-popup-request' || code === 'auth/operation-not-supported-in-this-environment'){
+      try{
+        await signInWithRedirect(auth, provider);
+        return;
+      }catch(e2){
+        console.error(e2);
+      }
+    }
+    showToast('登入失敗，請改用 Safari 或 Chrome 開啟再試一次');
     console.error(e);
   }
 }
@@ -1454,6 +1566,23 @@ document.getElementById('fabCompose').addEventListener('click', () => openCompos
 
 /* ---------------- init ---------------- */
 subscribe();
+
+/* 走 signInWithRedirect 的話，回站後要把結果收下來。 */
+getRedirectResult(auth).catch(e => {
+  if(e && e.code) console.error('redirect sign-in failed:', e.code);
+});
+
+/* App 內建瀏覽器一進站就提示，不要等使用者按了登入才發現不能用。 */
+(function warnIfInAppBrowser(){
+  const app = detectInAppBrowser();
+  if(!app) return;
+  const bar = document.createElement('div');
+  bar.className = 'inapp-banner';
+  bar.innerHTML = `<span>⚠️ 你正從「${escapeHtml(app)}」內建瀏覽器開啟，<strong>無法用 Google 登入</strong></span>
+    <button type="button" id="btnInAppBanner">如何解決</button>`;
+  document.body.appendChild(bar);
+  bar.querySelector('#btnInAppBanner').addEventListener('click', showInAppBrowserHelp);
+})();
 </script>
 </body>
 </html>
