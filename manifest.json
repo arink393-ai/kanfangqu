@@ -1,14 +1,22 @@
 {
-  "name": "看房趣",
-  "short_name": "看房趣",
-  "description": "匿名公開的看房與議價經驗分享公佈欄",
+  "name": "租房趣",
+  "short_name": "租房趣",
+  "description": "租客專屬的匿名租屋經驗分享平台：看房、簽約、入住、退租與被歧視的真實故事",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
   "background_color": "#F5F6F9",
   "theme_color": "#3654D6",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
