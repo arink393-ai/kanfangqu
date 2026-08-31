@@ -464,11 +464,13 @@ footer.site .footer-links a{color:var(--accent);text-decoration:none;font-weight
         </select>
         <button class="chip" data-tag-filter="口頭承諾但反悔">口頭承諾反悔</button>
         <button class="chip" data-tag-filter="隱瞞房屋瑕疵">隱瞞瑕疵</button>
-        <button class="chip" data-tag-filter="收了斡旋/訂金卻不算數">訂金糾紛</button>
         <button class="chip" data-tag-filter="契約有不合理條款">契約有問題</button>
         <button class="chip" data-tag-filter="拖延/不處理修繕">拖延修繕</button>
+        <button class="chip" data-tag-filter="惡鄰居問題房東不處理">惡鄰居</button>
+        <button class="chip" data-tag-filter="房東過度查勤或監控">房東查勤</button>
         <button class="chip" data-tag-filter="未經同意擅自進入">擅自進入</button>
         <button class="chip" data-tag-filter="押金扣款不合理">扣押金爭議</button>
+        <button class="chip" data-tag-filter="房東提前收回房屋">提前趕人</button>
         <button class="chip" data-tag-filter="養寵物被拒絕或刁難">寵物歧視</button>
         <button class="chip" data-tag-filter="因性別被拒絕或差別待遇">性別歧視</button>
         <button class="chip" data-tag-filter="被問失禮的私人問題">失禮提問</button>
@@ -532,20 +534,25 @@ const provider = new GoogleAuthProvider();
 const TAG_GROUPS = [
   { label: '看房／議價階段', tags: [
     "口頭承諾但反悔","收了斡旋/訂金卻不算數","房子已出租卻仍刊登",
-    "隱瞞房屋瑕疵","照片與實際不符","坪數灌水","用話術施壓成交","臨時調漲租金或條件"] },
+    "隱瞞房屋瑕疵","照片與實際不符","坪數灌水","帶A看B（實際看的不是刊登物件）",
+    "隱瞞凶宅或重大事故","用話術施壓成交","臨時調漲租金或條件"] },
   { label: '簽約階段', tags: [
-    "不給看契約就要簽","契約有不合理條款","不願寫入口頭承諾","要求簽本票或高額擔保",
-    "不願提供屋主身分證明","拒絕報稅或設籍","押金超收（逾兩個月）"] },
+    "不給看契約就要簽","不給契約副本","契約有不合理條款","簽約後偷改契約（AB約）",
+    "不願寫入口頭承諾","要求簽本票或高額擔保","要求連帶保證人","巧立名目收取額外費用",
+    "不願提供屋主身分證明","二房東身分或轉租權有問題","拒絕報稅或設籍","押金超收（逾兩個月）"] },
   { label: '入住／租屋期間', tags: [
-    "未經同意擅自進入","拖延/不處理修繕","亂漲租金或加收費用","水電費灌水超收",
-    "騷擾或威脅房客","任意斷水斷電","限制訪客或作息","隱私被侵犯（裝設監視器等）"] },
+    "未經同意擅自進入","未經同意帶人看房","房東過度查勤或監控","隱私被侵犯（裝設監視器等）",
+    "拖延/不處理修繕","惡鄰居問題房東不處理","亂漲租金或加收費用","水電費灌水超收",
+    "阻擋申請租金補貼","騷擾或威脅房客","用手段逼房客搬走","任意斷水斷電",
+    "限制訪客或作息","室友或分租糾紛","違建/頂加/消防不合格"] },
   { label: '退租階段', tags: [
-    "不退還訂金或押金","押金扣款不合理","提前解約違約金過高","恢復原狀認定爭議",
-    "拖延不退押金","拒絕點交或不出面"] },
+    "房東提前收回房屋","不退還訂金或押金","押金扣款不合理","拖延不退押金",
+    "謊稱物品毀損或遺失","提前解約違約金過高","恢復原狀認定爭議","拒絕點交或不出面"] },
   { label: '歧視與不當對待', tags: [
     "養寵物被拒絕或刁難","因性別被拒絕或差別待遇","因性傾向或性別認同被歧視",
     "因外表或身材被評論","因種族/國籍/語言被歧視","因年齡被拒絕",
-    "因職業或收入被羞辱","因身心障礙被拒絕","被問失禮的私人問題","不當肢體接觸或言語騷擾"] },
+    "因職業或收入被羞辱","因身心障礙被拒絕","因有小孩被拒絕","被問失禮的私人問題",
+    "不當肢體接觸或言語騷擾"] },
   { label: '其他', tags: ["其他"] }
 ];
 const TAG_OPTIONS = TAG_GROUPS.flatMap(g => g.tags);
